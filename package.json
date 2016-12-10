@@ -1,0 +1,67 @@
+{
+  "name": "bnc-api",
+  "version": "1.0.0",
+  "description": "React Apollo starter kit",
+  "main": "src/server",
+  "engines": {
+    "node": "6.2.2",
+    "npm": "3.7.3"
+  },
+  "scripts": {
+    "test": "test",
+    "clean": "rm -rf $OUTPUT_DIR",
+    "lint": "eslint --fix --ext js --ext jsx src",
+    "prod-build": "babel ./src -d $OUTPUT_DIR/server --source-maps",
+    "postinstall": "if [ \"$NODE_ENV\" = production ] ; then npm run prod-build ; fi",
+    "start": "node $OUTPUT_DIR/server/server",
+    "predev-start": "npm run clean",
+    "dev-start": "nodemon -e js,jsx,md,mustache -w ./src --exec ./dev-tools/babel-run -- ./src/server",
+    "dev": "nf start -w --procfile ./dev-tools/Procfile.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brandnewcongress/api.git"
+  },
+  "keywords": [
+    "api",
+    "brand",
+    "new",
+    "congress"
+  ],
+  "author": "Saikat Chakrabarti",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/brandnewcongress/api/issues"
+  },
+  "homepage": "https://github.com/brandnewcongress/api/#readme",
+  "dependencies": {
+    "babel-cli": "^6.14.0",
+    "babel-core": "^6.14.0",
+    "babel-polyfill": "^6.13.0",
+    "babel-preset-es2015": "^6.14.0",
+    "babel-register": "^6.14.0",
+    "body-parser": "^1.15.2",
+    "eslint-plugin-import": "^1.15.0",
+    "express": "^4.14.0",
+    "minilog": "^3.0.1",
+    "nodemon": "^1.10.2",
+    "rollbar": "^0.6.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.10.1",
+    "babel-core": "^6.10.4",
+    "babel-polyfill": "^6.9.1",
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-react": "^6.11.1",
+    "babel-preset-stage-0": "^6.5.0",
+    "babel-eslint": "^6.1.2",
+    "babel-register": "^6.9.0",
+    "eslint": "^2.9.0",
+    "eslint-config-airbnb": "^9.0.1",
+    "eslint-plugin-import": "^1.10.2",
+    "eslint-plugin-jsx-a11y": "^1.5.5",
+    "eslint-plugin-react": "^5.2.2",
+    "foreman": "^1.4.1",
+    "nodemon": "^1.9.2"
+  }
+}
