@@ -13,7 +13,7 @@ app.enable('trust proxy')
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
-app.post('/signup', wrap(async (req, res) => {
+app.post('/people', wrap(async (req, res) => {
   const body = req.body
   let nameParts = null
   let firstName = null
