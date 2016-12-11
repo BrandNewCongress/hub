@@ -52,9 +52,9 @@ app.post('/signup', wrap(async (req, res) => {
 
 app.get('/people/count', wrap(async (req, res) => {
   let response = null
-  response = await axios.get(`https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`)
+  response = await axios.get(`https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`, { headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, validateStatus: () => true})
   if (response) {
-    res.send(response)
+    res.send({ count: response.data.people_count })
   } else {
     res.sendStatus(400)
   }
