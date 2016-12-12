@@ -12,6 +12,14 @@ const port = process.env.PORT
 app.enable('trust proxy')
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
+app.use((req, res, next) => {
+  res.set({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,PATCH,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Origin,Content-Type,X-Auth-Token'
+  })
+  return next()
+})
 
 app.post('/people', wrap(async (req, res) => {
   const body = req.body
@@ -52,7 +60,7 @@ app.post('/people', wrap(async (req, res) => {
 
 app.get('/people/count', wrap(async (req, res) => {
   let response = null
-  response = await axios.get(`https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`, { headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, validateStatus: () => true})
+  response = await axios.get(`https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`, { headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, validateStatus: () => true })
   if (response) {
     res.send({ count: response.data.people_count })
   } else {
@@ -63,7 +71,7 @@ app.get('/people/count', wrap(async (req, res) => {
 // get upcoming conferences REST call
 // path/maestro/upcomingConferences
 // Usage:
-//   name : filter for conferences that contain value of "name"
+//   name : filter for conferences that contain value of 'name"
 app.get('/conference-calls/upcoming', wrap(async (request, response) => {
   const name = (typeof request.query.name === 'undefined') ? '' : unescape(request.query.name)
 
