@@ -97,6 +97,16 @@ async function create(table, fields) {
   })
 }
 
+function isFieldEmpty(field) {
+  if (typeof field === 'undefined' || field === null || field === '') {
+    return true
+  }
+  if (field.hasOwnProperty('length') && field.length === 0) {
+    return true
+  }
+  return false
+}
+
 async function createOrUpdatePerson(personId, {
   email,
   phone,
@@ -148,16 +158,16 @@ async function createOrUpdatePerson(personId, {
   }
 
   const personFieldsToUpdate = {}
-  if (!person.get('Name') && name) {
+  if (isFieldEmpty('Name') && name) {
     personFieldsToUpdate.Name = name
   }
-  if (!person.get('Facebook') && facebook) {
+  if (isFieldEmpty('Facebook') && facebook) {
     personFieldsToUpdate.Facebook = facebook
   }
-  if (!person.get('LinkedIn') && linkedin) {
+  if (isFieldEmpty('LinkedIn') && linkedin) {
     personFieldsToUpdate.LinkedIn = linkedin
   }
-  if (!person.get('Twitter') && twitter) {
+  if (isFieldEmpty('Twitter') && twitter) {
     personFieldsToUpdate.Twitter = twitter
   }
   if (Object.keys(personFieldsToUpdate).length > 0) {
@@ -175,21 +185,21 @@ async function createOrUpdatePerson(personId, {
   }
 
   const addressIds = person.get('Addresses')
-  if (addressIds) {
+  if (!isFieldEmpty(addressIds)) {
     let index = 0
     for (index = 0; index < addressIds.length; index++) {
       const address = await findById('Addresses', addressIds[index])
-      if ((address.get('Congressional District') && address.get('Congressional District')[0] === districtId) ||
-          (address.get('City') && city && address.get('City').toLowerCase() === city.toLowerCase()) ||
-          (address.get('State') && address.get('State')[0] === stateId)) {
+      if ((!isFieldEmpty(address.get('Congressional District')) && address.get('Congressional District')[0] === districtId) ||
+          (!isFieldEmpty(address.get('City')) && city && address.get('City').toLowerCase() === city.toLowerCase()) ||
+          (!isFieldEmpty(address.get('State')) && address.get('State')[0] === stateId)) {
         const addressFieldsToUpdate = {}
-        if (!address.get('Congressional District') && districtId) {
+        if (isFieldEmpty(address.get('Congressional District')) && districtId) {
           addressFieldsToUpdate['Congressional District'] = districtId
         }
-        if (!address.get('City') && city) {
+        if (isFieldEmpty(address.get('City')) && city) {
           addressFieldsToUpdate.City = city
         }
-        if (!address.get('State') && stateId) {
+        if (isFieldEmpty(address.get('State')) && stateId) {
           addressFieldsToUpdate.State = stateId
         }
         await update('Addresses', address.id, addressFieldsToUpdate)
@@ -248,11 +258,11 @@ async function matchPerson({
     for (let index = 0; index < personRecords.length; index++) {
       const record = personRecords[index]
       const addressIds = record.get('Addresses')
-      if (addressIds) {
+      if (!isFieldEmpty(addressIds)) {
         for (let innerIndex = 0; innerIndex < addressIds.length; innerIndex++) {
           const address = await findById('Addresses', addressIds[innerIndex])
-          if ((address.get('Congressional District') && address.get('Congressional District')[0] === districtId) ||
-            (address.get('City').toLowerCase() === city.toLowerCase() && address.get('State') && address.get('State')[0] === stateId)) {
+          if ((!isFieldEmpty(address.get('Congressional District')) && address.get('Congressional District')[0] === districtId) ||
+            (!isFieldEmpty(address.get('City')) && address.get('City').toLowerCase() === city.toLowerCase() && !isFieldEmpty(address.get('State')) && address.get('State')[0] === stateId)) {
             return record.id
           }
         }
