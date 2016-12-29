@@ -84,7 +84,6 @@ async function update(table, id, fields) {
 }
 
 async function create(table, fields) {
-  console.log(fields)
   return new Promise((resolve, reject) => {
     airtableBase(table)
       .create(fields, (err, record) => {
@@ -341,7 +340,7 @@ app.post('/nominations', wrap(async (req, res) => {
 
   let sourceTeam = null
   if (body.sourceTeamName) {
-    sourceTeam = await findOne('Teams', `LOWER({Name}) = '${body.sourceTeamName.toLowerCase}'`)
+    sourceTeam = await findOne('Teams', `LOWER({Name}) = '${body.sourceTeamName.toLowerCase()}'`)
   }
 
   const nomination = {
