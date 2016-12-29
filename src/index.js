@@ -325,11 +325,9 @@ app.post('/nominations', wrap(async (req, res) => {
     districtId
   })
 
-  console.log("got to here?")
-
   let sourceTeam = null
   if (body.sourceTeamName) {
-    sourceTeam = await findOne('Teams', `LOWER({Name}) = ${body.sourceTeamName.toLowerCase}`)
+    sourceTeam = await findOne('Teams', `LOWER({Name}) = '${body.sourceTeamName.toLowerCase}'`)
   }
 
   await create('Nominations', {
@@ -345,7 +343,7 @@ app.post('/nominations', wrap(async (req, res) => {
     Facebook: body.nomineeFacebook,
     LinkedIn: body.nomineeLinkedIn,
     Twitter: body.nomineeTwitter,
-    'Relationship To Nominee': body.relationship,
+    'Relationship to Nominator': body.relationship,
     Leadership: body.leadership,
     'Work History': body.work,
     'Public Speaking': body.publicSpeaking,
