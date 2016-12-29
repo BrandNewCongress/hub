@@ -84,6 +84,7 @@ async function update(table, id, fields) {
 }
 
 async function create(table, fields) {
+  console.log(fields)
   return new Promise((resolve, reject) => {
     airtableBase(table)
       .create(fields, (err, record) => {
@@ -150,8 +151,8 @@ async function createOrUpdatePerson(personId, {
   if (city || stateId || districtId) {
     recordsToCreate.Addresses = {
       City: city,
-      State: [stateId],
-      'Congressional District': [districtId],
+      State: stateId ? [stateId] : null,
+      'Congressional District': districtId ? [districtId] : null,
       Person: [person.id]
     }
   }
@@ -273,22 +274,26 @@ async function matchPerson({
 
 app.post('/nominations', wrap(async (req, res) => {
   const body = req.body
+  if (!body.nominatorName || !body.nominatorEmail || !body.nominatorPhone || !body.nomineeName) {
+    res.sendStatus(400)
+    return
+  }
   body.nominatorName = body.nominatorName.trim()
   body.nominatorEmail = body.nominatorEmail.trim().toLowerCase()
   body.nominatorPhone = phoneUtil.format(phoneUtil.parse(body.nominatorPhone.trim(), 'US'), PNF.INTERNATIONAL)
   body.nomineeName = body.nomineeName.trim()
-  body.nomineeEmail = body.nomineeEmail.trim().toLowerCase()
-  body.nomineePhone = phoneUtil.format(phoneUtil.parse(body.nomineePhone.trim(), 'US'), PNF.INTERNATIONAL)
-  body.nomineeCity = toTitleCase(body.nomineeCity.trim())
-  body.nomineeState = body.nomineeState.trim().toUpperCase()
-  body.nomineeDistrict = body.nomineeDistrict.trim().toUpperCase() === 'AL' ? body.nomineeDistrict.trim().toUpperCase() : parseInt(body.nomineeDistrict, 10).toString()
+  body.nomineeEmail = body.nomineeEmail ? body.nomineeEmail.trim().toLowerCase() : null
+  body.nomineePhone = body.nomineePhone ? phoneUtil.format(phoneUtil.parse(body.nomineePhone.trim(), 'US'), PNF.INTERNATIONAL) : null
+  body.nomineeCity = body.nomineeCity ? toTitleCase(body.nomineeCity.trim()) : null
+  body.nomineeState = body.nomineeState ? body.nomineeState.trim().toUpperCase() : null
+  body.nomineeDistrict = body.nomineeDistrict ? body.nomineeDistrict.trim().toUpperCase() === 'AL' ? body.nomineeDistrict.trim().toUpperCase() : parseInt(body.nomineeDistrict, 10).toString() : null
   body.nomineeFacebook = body.nomineeFacebook && body.nomineeFacebook.toLowerCase().match('facebook.com') ? normalizeUrl(body.nomineeFacebook).toLowerCase() : null
   body.nomineeLinkedIn = body.nomineeLinkedIn && body.nomineeLinkedIn.toLowerCase().match('linkedin.com') ? normalizeUrl(body.nomineeLinkedIn).toLowerCase() : null
   body.nomineeTwitter = body.nomineeTwitter && body.nomineeTwitter.toLowerCase().match('twitter.com') ? normalizeUrl(body.nomineeTwitter).toLowerCase() : null
-  body.politicalParty = toTitleCase(body.politicalParty.trim())
-  body.source = body.source.trim()
-  body.sourceTeamName = body.sourceTeamName.trim()
-  body.submitterEmail = body.submitterEmail.trim().toLowerCase()
+  body.politicalParty = body.politicalParty ? toTitleCase(body.politicalParty.trim()) : 'Unknown'
+  body.source = body.source ? body.source.trim() : 'BNC Website Submission'
+  body.sourceTeamName = body.sourceTeamName ? body.sourceTeamName.trim() : 'No Team'
+  body.submitterEmail = body.submitterEmail ? body.submitterEmail.trim().toLowerCase() : body.nominatorEmail
 
   const state = await findOne('States', `{Abbreviation} = '${body.nomineeState}'`)
   const stateId = state ? state.id : null
@@ -339,7 +344,7 @@ app.post('/nominations', wrap(async (req, res) => {
     sourceTeam = await findOne('Teams', `LOWER({Name}) = '${body.sourceTeamName.toLowerCase}'`)
   }
 
-  await create('Nominations', {
+  const nomination = {
     'Nominator Name': body.nominatorName,
     'Nominator Email': body.nominatorEmail,
     'Nominator Phone': body.nominatorPhone,
@@ -347,8 +352,8 @@ app.post('/nominations', wrap(async (req, res) => {
     Email: body.nomineeEmail,
     Phone: body.nomineePhone,
     City: body.nomineeCity,
-    State: [stateId],
-    'Congressional District': [districtId],
+    State: stateId ? [stateId] : null,
+    'Congressional District': districtId ? [districtId] : null,
     Facebook: body.nomineeFacebook,
     LinkedIn: body.nomineeLinkedIn,
     Twitter: body.nomineeTwitter,
@@ -367,7 +372,9 @@ app.post('/nominations', wrap(async (req, res) => {
     'Source Team': sourceTeam ? [sourceTeam.id] : null,
     Submitter: [submitter.id],
     Nominator: [nominator.id]
-  })
+  }
+
+  await create('Nominations', nomination)
 
   res.sendStatus(200)
 }))
