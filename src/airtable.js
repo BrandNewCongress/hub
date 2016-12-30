@@ -1,6 +1,6 @@
 import Airtable from 'airtable'
 import log from './log'
-import { isEmpty } from './lib'
+import { isEmpty, toTitleCase, formatEmail, formatText, formatPhoneNumber, formatLink, formatState, formatDistrict } from './lib'
 
 class BNCAirtable {
   constructor() {
@@ -237,6 +237,100 @@ class BNCAirtable {
       }
     }
     return null
+  }
+
+  async createNomination(rawNomination) {
+    const nomination = {
+      'Date Submitted (Legacy)': new Date(rawNomination['Date Submitted (Legacy)']),
+      'Nominator Name': formatText(rawNomination['Nominator Name']),
+      'Nominator Email': formatEmail(rawNomination['Nominator Email']),
+      'Nominator Phone': formatPhoneNumber(rawNomination['Nominator Phone']),
+      Name: formatText(rawNomination.Name),
+      Email: formatEmail(rawNomination.Email),
+      Phone: formatPhoneNumber(rawNomination.Phone),
+      City: toTitleCase(formatText(rawNomination.City)),
+      State: formatText(rawNomination.State).toUpperCase(),
+      'Congressional District': formatDistrict(rawNomination['Congressional District']),
+      Facebook: formatLink(rawNomination.Facebook),
+      LinkedIn: formatLink(rawNomination.LinkedIn),
+      Twitter: formatLink(rawNomination.Twitter),
+      'Political Party': formatText(rawNomination['Political Party']),
+      'Relationship to Nominator': formatText(rawNomination['Relationship to Nominator']),
+      Leadership: formatText(rawNomination.Leadership),
+      'Work History': formatText(rawNomination['Work History']),
+      'Public Speaking': formatText(rawNomination['Public Speaking']),
+      'Political Views': formatText(rawNomination['Political Views']),
+      'Run for Office': formatText(rawNomination['Run for Office']),
+      'Office Run Results': formatText(rawNomination['Office Run Results']),
+      'Other Info': formatText(rawNomination['Other Info']),
+      'District Info': formatText(rawNomination['District Info']),
+      Source: formatText(rawNomination.Source),
+      'Source Team': formatText(rawNomination['Source Team']) || 'No Team',
+      'Submitter Email': formatEmail(rawNomination.Submitter) || formatEmail(rawNomination['Nominator Email']),
+      'Source Details': formatText(rawNomination['Source Details'])
+    }
+    const state = await this.findOne('States', `{Abbreviation} = '${nomination.State}'`)
+    const stateId = state ? state.id : null
+
+    const district = await this.findOne('Congressional Districts', `{ID} = '${nomination['Congressional District']}'`)
+    const districtId = district ? district.id : null
+
+    let nominator = await this.matchPerson({
+      email: nomination['Nominator Email'],
+      phone: nomination['Nominator Phone']
+    })
+
+    nominator = await this.createOrUpdatePerson(nominator, {
+      name: nomination['Nominator Name'],
+      email: nomination['Nominator Email'],
+      phone: nomination['Nominator Phone']
+    })
+
+    let submitter = await this.matchPerson({
+      email: nomination['Submitter Email']
+    })
+    submitter = await this.createOrUpdatePerson(submitter, {
+      email: nomination['Submitter Email']
+    })
+    let nominee = await this.matchPerson({
+      email: nomination.Email,
+      phone: nomination.Phone,
+      facebook: nomination.Facebook,
+      linkedin: nomination.LinkedIn,
+      twitter: nomination.Twitter,
+      name: nomination.Name,
+      city: nomination.City,
+      stateId,
+      districtId
+    })
+    nominee = await this.createOrUpdatePerson(nominee, {
+      email: nomination.Email,
+      phone: nomination.Phone,
+      facebook: nomination.Facebook,
+      linkedin: nomination.LinkedIn,
+      twitter: nomination.Twitter,
+      name: nomination.Name,
+      city: nomination.City,
+      politicalParty: nomination['Political Party'],
+      stateId,
+      districtId
+    })
+
+    let sourceTeam = null
+    if (nomination['Source Team']) {
+      sourceTeam = await this.findOne('Teams', `LOWER({Name}) = '${nomination['Source Team'].toLowerCase()}'`)
+    }
+
+    const nominationToSubmit = {
+      ...nomination,
+      State: stateId ? [stateId] : null,
+      'Congressional District': districtId ? [districtId] : null,
+      Person: [nominee.id],
+      'Source Team': sourceTeam ? [sourceTeam.id] : null,
+      Submitter: [submitter.id],
+      Nominator: [nominator.id]
+    }
+    await this.create('Nominations', nominationToSubmit)
   }
 }
 
