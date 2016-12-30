@@ -1,6 +1,19 @@
 import Airtable from 'airtable'
 import log from './log'
-import { isEmpty, toTitleCase, formatEmail, formatText, formatPhoneNumber, formatLink, formatState, formatDistrict } from './lib'
+import {
+  isEmpty,
+  toTitleCase,
+  formatDate,
+  formatEmail,
+  formatText,
+  formatPhoneNumber,
+  formatLink,
+  formatStateCode,
+  formatDistrictCode,
+  formatDistrict,
+  formatPoliticalParty,
+  formatSourceTeamName
+} from './lib'
 
 class BNCAirtable {
   constructor() {
@@ -244,84 +257,83 @@ class BNCAirtable {
 
   async createNomination(rawNomination) {
     const nomination = {
-      'Date Submitted (Legacy)': new Date(rawNomination['Date Submitted (Legacy)']),
-      'Nominator Name': formatText(rawNomination['Nominator Name']),
-      'Nominator Email': formatEmail(rawNomination['Nominator Email']),
-      'Nominator Phone': formatPhoneNumber(rawNomination['Nominator Phone']),
-      Name: formatText(rawNomination.Name),
-      Email: formatEmail(rawNomination.Email),
-      Phone: formatPhoneNumber(rawNomination.Phone),
-      City: toTitleCase(formatText(rawNomination.City)),
-      State: formatText(rawNomination.State).toUpperCase(),
-      'Congressional District': rawNomination['Congressional District'],
-      Facebook: formatLink(rawNomination.Facebook),
-      LinkedIn: formatLink(rawNomination.LinkedIn),
-      Twitter: formatLink(rawNomination.Twitter),
-      'Political Party': formatText(rawNomination['Political Party']),
-      'Relationship to Nominator': formatText(rawNomination['Relationship to Nominator']),
-      Leadership: formatText(rawNomination.Leadership),
-      'Work History': formatText(rawNomination['Work History']),
-      'Public Speaking': formatText(rawNomination['Public Speaking']),
-      'Political Views': formatText(rawNomination['Political Views']),
-      'Run for Office': formatText(rawNomination['Run for Office']),
-      'Office Run Results': formatText(rawNomination['Office Run Results']),
-      'Other Info': formatText(rawNomination['Other Info']),
-      'District Info': formatText(rawNomination['District Info']),
+      ...rawNomination,
+      'Date Submitted (Legacy)': formatDate(rawNomination['Date Submitted (Legacy)']),
       Source: formatText(rawNomination.Source),
-      'Source Team': formatText(rawNomination['Source Team']) || 'No Team',
-      'Submitter Email': formatEmail(rawNomination['Submitter Email']) || formatEmail(rawNomination['Nominator Email']),
-      'Source Details': formatText(rawNomination['Source Details'])
+      'Run for Office': formatText(rawNomination['Run for Office'])
     }
-    const state = await this.findOne('States', `{Abbreviation} = '${nomination.State}'`)
+    const cleanedNomination = {
+      nominatorName: formatText(rawNomination['Nominator Name']),
+      nominatorEmail: formatEmail(rawNomination['Nominator Email']),
+      nominatorPhone: formatPhoneNumber(rawNomination['Nominator Phone']),
+      name: formatText(rawNomination.Name),
+      email: formatEmail(rawNomination.Email),
+      phone: formatPhoneNumber(rawNomination.Phone),
+      city: toTitleCase(formatText(rawNomination.City)),
+      stateCode: formatStateCode(rawNomination['State Name']),
+      districtCode: formatDistrictCode(rawNomination['Congressional District Code']),
+      facebook: formatLink(rawNomination.Facebook),
+      linkedIn: formatLink(rawNomination.LinkedIn),
+      twitter: formatLink(rawNomination.Twitter),
+      politicalParty: formatPoliticalParty(rawNomination['Political Party']),
+      sourceTeamName: formatSourceTeamName(rawNomination['Source Team Name']),
+      submitterEmail: formatEmail(rawNomination['Submitter Email']) || formatEmail(rawNomination['Nominator Email'])
+    }
+
+    const state = await this.findOne('States', `{Abbreviation} = '${cleanedNomination.stateCode}'`)
     const stateId = state ? state.id : null
 
-    const district = await this.findOne('Congressional Districts', `{ID} = '${nomination['Congressional District']}'`)
-    const districtId = district ? district.id : null
+    const districtAbbreviation = formatDistrict(cleanedNomination.stateCode, cleanedNomination.districtCode)
+    let districtId = null
+    if (districtAbbreviation !== null) {
+      const district = await this.findOne('Congressional Districts', `{ID} = '${districtAbbreviation}'`)
+      districtId = district ? district.id : null
+    }
 
     let nominator = await this.matchPerson({
-      email: nomination['Nominator Email'],
-      phone: nomination['Nominator Phone']
+      email: cleanedNomination.nominatorEmail,
+      phone: cleanedNomination.nominatorPhone
     })
 
     nominator = await this.createOrUpdatePerson(nominator, {
-      name: nomination['Nominator Name'],
-      email: nomination['Nominator Email'],
-      phone: nomination['Nominator Phone']
+      name: cleanedNomination.nominatorName,
+      email: cleanedNomination.nominatorEmail,
+      phone: cleanedNomination.nominatorPhone
     })
 
     let submitter = await this.matchPerson({
-      email: nomination['Submitter Email']
+      email: cleanedNomination.submitterEmail
     })
     submitter = await this.createOrUpdatePerson(submitter, {
-      email: nomination['Submitter Email']
+      email: cleanedNomination.submitterEmail
     })
     let nominee = await this.matchPerson({
-      email: nomination.Email,
-      phone: nomination.Phone,
-      facebook: nomination.Facebook,
-      linkedin: nomination.LinkedIn,
-      twitter: nomination.Twitter,
-      name: nomination.Name,
-      city: nomination.City,
+      email: cleanedNomination.email,
+      phone: cleanedNomination.phone,
+      facebook: cleanedNomination.facebook,
+      linkedin: cleanedNomination.linkedin,
+      twitter: cleanedNomination.twitter,
+      name: cleanedNomination.name,
+      city: cleanedNomination.city,
       stateId,
       districtId
     })
     nominee = await this.createOrUpdatePerson(nominee, {
-      email: nomination.Email,
-      phone: nomination.Phone,
-      facebook: nomination.Facebook,
-      linkedin: nomination.LinkedIn,
-      twitter: nomination.Twitter,
-      name: nomination.Name,
-      city: nomination.City,
-      politicalParty: nomination['Political Party'],
+      email: cleanedNomination.email,
+      phone: cleanedNomination.phone,
+      facebook: cleanedNomination.facebook,
+      linkedin: cleanedNomination.linkedin,
+      twitter: cleanedNomination.twitter,
+      name: cleanedNomination.name,
+      city: cleanedNomination.city,
+      politicalParty: cleanedNomination.politicalParty,
       stateId,
       districtId
     })
 
     let sourceTeam = null
-    if (nomination['Source Team']) {
-      sourceTeam = await this.findOne('Teams', `LOWER({Name}) = '${nomination['Source Team'].toLowerCase()}'`)
+    if (cleanedNomination.sourceTeamName) {
+      sourceTeam = await this.findOne('Teams', `LOWER({Name}) = '${cleanedNomination.sourceTeamName.toLowerCase()}'`)
     }
 
     const nominationToSubmit = {
@@ -333,7 +345,28 @@ class BNCAirtable {
       Submitter: [submitter.id],
       Nominator: [nominator.id]
     }
-    await this.create('Nominations', nominationToSubmit)
+    const createdNomination = await this.create('Nominations', nominationToSubmit)
+    return createdNomination
+  }
+
+  async createNomineeEvaluation(nominee, round, score, districtScore, moveToNextRound, evaluator, evaluationDate) {
+    const rounds = {
+      R1: 'R1 - Initial Eval',
+      R2: 'R2 - One Interview',
+      R3: 'R3 - Board Review',
+      R4: 'R4 - Extended Interviews',
+      R5: 'R5 - Board Review',
+      R6: 'R6 - Convince to Run'
+    }
+    const nomineeEvaluation = {
+      Nominee: [nominee.id],
+      Round: rounds[formatText(round)],
+      Score: score,
+      'District Score': formatText(districtScore),
+      'Move To Next Round': moveToNextRound ? 'Yes' : 'No',
+      Evaluator: [evaluator.id],
+      'Evaluation Date (Legacy)': formatDate(evaluationDate)
+    }
   }
 }
 

@@ -29,8 +29,6 @@ app.post('/nominations', wrap(async (req, res) => {
     return
   }
 
-  console.log(formatDistrict(body.nomineeState, body.nomineeDistrict))
-
   const nomination = {
     'Nominator Name': body.nominatorName,
     'Nominator Email': body.nominatorEmail,
@@ -39,8 +37,8 @@ app.post('/nominations', wrap(async (req, res) => {
     Email: body.nomineeEmail,
     Phone: body.nomineePhone,
     City: body.nomineeCity,
-    State: body.nomineeState,
-    'Congressional District': formatDistrict(body.nomineeState, body.nomineeDistrict),
+    'State Name': body.nomineeState,
+    'Congressional District Code': body.nomineeDistrict,
     Facebook: body.nomineeFacebook,
     LinkedIn: body.nomineeLinkedIn,
     Twitter: body.nomineeTwitter,
@@ -54,9 +52,9 @@ app.post('/nominations', wrap(async (req, res) => {
     'Office Run Results': body.officeRunResults,
     'Other Info': body.otherInfo,
     'District Info': body.districtInfo,
-    Source: isEmpty(body.source) ? 'BNC Website Submission' : body.source,
+    Source: isEmpty(body.source) ? 'BNC Website' : body.source,
     'Source Details': body.sourceDetails,
-    'Source Team': body.sourceTeamName,
+    'Source Team Name': body.sourceTeamName,
     'Submitter Email': body.submitterEmail
   }
 
