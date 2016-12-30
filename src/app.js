@@ -5,7 +5,6 @@ import log from './log'
 import wrap from './wrap'
 import mail from './mail'
 import maestro from './maestro'
-import normalizeUrl from 'normalize-url'
 import airtable from './airtable'
 import { formatDistrict, isEmpty } from './lib'
 
@@ -30,6 +29,8 @@ app.post('/nominations', wrap(async (req, res) => {
     return
   }
 
+  console.log(formatDistrict(body.nomineeState, body.nomineeDistrict))
+
   const nomination = {
     'Nominator Name': body.nominatorName,
     'Nominator Email': body.nominatorEmail,
@@ -48,6 +49,7 @@ app.post('/nominations', wrap(async (req, res) => {
     'Work History': body.work,
     'Public Speaking': body.publicSpeaking,
     'Political Views': body.politicalViews,
+    'Political Party': body.politicalParty,
     'Run for Office': body.runForOffice,
     'Office Run Results': body.officeRunResults,
     'Other Info': body.otherInfo,

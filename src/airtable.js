@@ -137,6 +137,9 @@ class BNCAirtable {
     if (isEmpty(person.get('Twitter')) && twitter) {
       personFieldsToUpdate.Twitter = twitter
     }
+    if (isEmpty(person.get('Political Party')) && politicalParty) {
+      personFieldsToUpdate['Political Party'] = politicalParty
+    }
     if (Object.keys(personFieldsToUpdate).length > 0) {
       await this.update('People', person.id, personFieldsToUpdate)
     }
@@ -250,7 +253,7 @@ class BNCAirtable {
       Phone: formatPhoneNumber(rawNomination.Phone),
       City: toTitleCase(formatText(rawNomination.City)),
       State: formatText(rawNomination.State).toUpperCase(),
-      'Congressional District': formatDistrict(rawNomination['Congressional District']),
+      'Congressional District': rawNomination['Congressional District'],
       Facebook: formatLink(rawNomination.Facebook),
       LinkedIn: formatLink(rawNomination.LinkedIn),
       Twitter: formatLink(rawNomination.Twitter),
@@ -266,7 +269,7 @@ class BNCAirtable {
       'District Info': formatText(rawNomination['District Info']),
       Source: formatText(rawNomination.Source),
       'Source Team': formatText(rawNomination['Source Team']) || 'No Team',
-      'Submitter Email': formatEmail(rawNomination.Submitter) || formatEmail(rawNomination['Nominator Email']),
+      'Submitter Email': formatEmail(rawNomination['Submitter Email']) || formatEmail(rawNomination['Nominator Email']),
       'Source Details': formatText(rawNomination['Source Details'])
     }
     const state = await this.findOne('States', `{Abbreviation} = '${nomination.State}'`)
