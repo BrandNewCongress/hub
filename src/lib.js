@@ -1,5 +1,6 @@
 import log from './log'
 import { PhoneNumberFormat as PNF, PhoneNumberUtil } from 'google-libphonenumber'
+import normalizeUrl from 'normalize-url'
 const phoneUtil = PhoneNumberUtil.getInstance()
 
 export function toTitleCase(str) {
