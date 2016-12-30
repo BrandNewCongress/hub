@@ -6,11 +6,9 @@ import wrap from './wrap'
 import mail from './mail'
 import maestro from './maestro'
 import normalizeUrl from 'normalize-url'
-import { PhoneNumberFormat as PNF, PhoneNumberUtil } from 'google-libphonenumber'
 import airtable from './airtable'
-import { toTitleCase } from './lib'
+import { formatDistrict, isEmpty } from './lib'
 
-const phoneUtil = PhoneNumberUtil.getInstance()
 const app = express()
 const port = process.env.PORT
 app.enable('trust proxy')
@@ -31,71 +29,6 @@ app.post('/nominations', wrap(async (req, res) => {
     res.sendStatus(400)
     return
   }
-  body.nominatorName = body.nominatorName.trim()
-  body.nominatorEmail = body.nominatorEmail.trim().toLowerCase()
-  body.nominatorPhone = phoneUtil.format(phoneUtil.parse(body.nominatorPhone.trim(), 'US'), PNF.INTERNATIONAL)
-  body.nomineeName = body.nomineeName.trim()
-  body.nomineeEmail = body.nomineeEmail ? body.nomineeEmail.trim().toLowerCase() : null
-  body.nomineePhone = body.nomineePhone ? phoneUtil.format(phoneUtil.parse(body.nomineePhone.trim(), 'US'), PNF.INTERNATIONAL) : null
-  body.nomineeCity = body.nomineeCity ? toTitleCase(body.nomineeCity.trim()) : null
-  body.nomineeState = body.nomineeState ? body.nomineeState.trim().toUpperCase() : null
-  body.nomineeDistrict = body.nomineeDistrict ? (body.nomineeDistrict.trim().toUpperCase() === 'AL' ? body.nomineeDistrict.trim().toUpperCase() : parseInt(body.nomineeDistrict, 10).toString()) : null
-  body.nomineeFacebook = body.nomineeFacebook && body.nomineeFacebook.toLowerCase().match('facebook.com') ? normalizeUrl(body.nomineeFacebook).toLowerCase() : null
-  body.nomineeLinkedIn = body.nomineeLinkedIn && body.nomineeLinkedIn.toLowerCase().match('linkedin.com') ? normalizeUrl(body.nomineeLinkedIn).toLowerCase() : null
-  body.nomineeTwitter = body.nomineeTwitter && body.nomineeTwitter.toLowerCase().match('twitter.com') ? normalizeUrl(body.nomineeTwitter).toLowerCase() : null
-  body.politicalParty = body.politicalParty ? toTitleCase(body.politicalParty.trim()) : 'Unknown'
-  body.source = body.source ? body.source.trim() : 'BNC Website Submission'
-  body.sourceTeamName = body.sourceTeamName ? body.sourceTeamName.trim() : 'No Team'
-  body.submitterEmail = body.submitterEmail ? body.submitterEmail.trim().toLowerCase() : body.nominatorEmail
-
-  const state = await airtable.findOne('States', `{Abbreviation} = '${body.nomineeState}'`)
-  const stateId = state ? state.id : null
-  const districtName = `${body.nomineeState}-${body.nomineeDistrict}`
-  const district = await airtable.findOne('Congressional Districts', `{ID} = '${districtName}'`)
-  const districtId = district ? district.id : null
-  let nominator = await airtable.matchPerson({
-    email: body.nominatorEmail,
-    phone: body.nominatorPhone
-  })
-  nominator = await airtable.createOrUpdatePerson(nominator, {
-    name: body.nominatorName,
-    email: body.nominatorEmail,
-    phone: body.nominatorPhone
-  })
-  let submitter = await airtable.matchPerson({
-    email: body.submitterEmail
-  })
-  submitter = await airtable.createOrUpdatePerson(submitter, {
-    email: body.submitterEmail
-  })
-  let nominee = await airtable.matchPerson({
-    email: body.nomineeEmail,
-    phone: body.nomineePhone,
-    facebook: body.nomineeFacebook,
-    linkedin: body.nomineeLinkedIn,
-    twitter: body.nomineeTwitter,
-    name: body.nomineeName,
-    city: body.nomineeCity,
-    stateId,
-    districtId
-  })
-  nominee = await airtable.createOrUpdatePerson(nominee, {
-    email: body.nomineeEmail,
-    phone: body.nomineePhone,
-    facebook: body.nomineeFacebook,
-    linkedin: body.nomineeLinkedIn,
-    twitter: body.nomineeTwitter,
-    name: body.nomineeName,
-    city: body.nomineeCity,
-    politicalParty: body.politicalParty,
-    stateId,
-    districtId
-  })
-
-  let sourceTeam = null
-  if (body.sourceTeamName) {
-    sourceTeam = await airtable.findOne('Teams', `LOWER({Name}) = '${body.sourceTeamName.toLowerCase()}'`)
-  }
 
   const nomination = {
     'Nominator Name': body.nominatorName,
@@ -105,8 +38,8 @@ app.post('/nominations', wrap(async (req, res) => {
     Email: body.nomineeEmail,
     Phone: body.nomineePhone,
     City: body.nomineeCity,
-    State: stateId ? [stateId] : null,
-    'Congressional District': districtId ? [districtId] : null,
+    State: body.nomineeState,
+    'Congressional District': formatDistrict(body.nomineeState, body.nomineeDistrict),
     Facebook: body.nomineeFacebook,
     LinkedIn: body.nomineeLinkedIn,
     Twitter: body.nomineeTwitter,
@@ -119,15 +52,13 @@ app.post('/nominations', wrap(async (req, res) => {
     'Office Run Results': body.officeRunResults,
     'Other Info': body.otherInfo,
     'District Info': body.districtInfo,
-    Person: [nominee.id],
-    Source: body.source,
+    Source: isEmpty(body.source) ? 'BNC Website Submission' : body.source,
     'Source Details': body.sourceDetails,
-    'Source Team': sourceTeam ? [sourceTeam.id] : null,
-    Submitter: [submitter.id],
-    Nominator: [nominator.id]
+    'Source Team': body.sourceTeamName,
+    'Submitter Email': body.submitterEmail
   }
 
-  await airtable.create('Nominations', nomination)
+  await airtable.createNomination(nomination)
 
   res.sendStatus(200)
 }))
