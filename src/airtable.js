@@ -88,8 +88,8 @@ class BNCAirtable {
   }
 
   async createOrUpdatePerson(personId, {
-    email,
-    phone,
+    emails,
+    phones,
     facebook,
     linkedin,
     twitter,
@@ -112,31 +112,6 @@ class BNCAirtable {
       })
     }
 
-    const recordsToCreate = {}
-
-    if (phone) {
-      recordsToCreate['Phone Numbers'] = {
-        'Phone Number': phone,
-        Person: [person.id]
-      }
-    }
-
-    if (email) {
-      recordsToCreate.Emails = {
-        Email: email,
-        Person: [person.id]
-      }
-    }
-
-    if (city || stateId || districtId) {
-      recordsToCreate.Addresses = {
-        City: city,
-        State: stateId ? [stateId] : null,
-        'Congressional District': districtId ? [districtId] : null,
-        Person: [person.id]
-      }
-    }
-
     const personFieldsToUpdate = {}
     if (isEmpty(person.get('Name')) && name) {
       personFieldsToUpdate.Name = name
@@ -157,14 +132,30 @@ class BNCAirtable {
       await this.update('People', person.id, personFieldsToUpdate)
     }
 
-    const existingEmail = await this.findOne('Emails', `{Email} = '${email}'`)
-    if (existingEmail) {
-      delete recordsToCreate.Emails
+    if (!isEmpty(phones)) {
+      for (let index = 0; index < phones.length; index++) {
+        const phone = phones[index]
+        const existingPhone = await this.findOne('Phone Numbers', `{Phone Number} = '${phone}'`)
+        if (!existingPhone) {
+          await this.create('Phone Numbers', {
+            'Phone Number': phone,
+            Person: [person.id]
+          })
+        }
+      }
     }
 
-    const existingPhone = await this.findOne('Phone Numbers', `{Phone Number} = '${phone}'`)
-    if (existingPhone) {
-      delete recordsToCreate['Phone Numbers']
+    if (!isEmpty(emails)) {
+      for (let index = 0; index < emails.length; index++) {
+        const email = emails[index]
+        const existingEmail = await this.findOne('Emails', `{Email} = '${email}'`)
+        if (!existingEmail) {
+          await this.create('Emails', {
+            Email: email,
+            Person: [person.id]
+          })
+        }
+      }
     }
 
     const addressIds = person.get('Addresses')
@@ -189,29 +180,40 @@ class BNCAirtable {
           break
         }
       }
-      if (index !== addressIds.length) {
-        delete recordsToCreate.Addresses
+      if (index === addressIds.length) {
+        await this.create('Addresses', {
+          City: city,
+          State: stateId ? [stateId] : null,
+          'Congressional District': districtId ? [districtId] : null,
+          Person: [person.id]
+        })
       }
     }
-    const tablesToUpdate = Object.keys(recordsToCreate)
-    for (let index = 0; index < tablesToUpdate.length; index++) {
-      const tableToUpdate = tablesToUpdate[index]
-      await this.create(tableToUpdate, recordsToCreate[tableToUpdate])
-    }
+
     return person
   }
 
   async matchPerson({
-    email, phone, facebook, linkedin, twitter, name, city, stateId, districtId
+    emails, phones, facebook, linkedin, twitter, name, city, stateId, districtId
   }) {
-    if (email) {
-      const emailRecord = await this.findOne('Emails', `{Email} = '${email}'`)
+    if (!isEmpty(emails)) {
+      let matchString = ''
+      emails.forEach((email) => {
+        matchString = `${matchString} LOWER({Email})='${email.toLowerCase()}',`
+      })
+      matchString = `OR(${matchString.slice(0, -1)})`
+      const emailRecord = await this.findOne('Emails', matchString)
       if (emailRecord) {
         return emailRecord.get('Person')[0]
       }
     }
-    if (phone) {
-      const phoneRecord = await this.findOne('Phone Numbers', `{Phone Number} = '${phone}'`)
+    if (!isEmpty(phones)) {
+      let matchString = ''
+      phones.forEach((phone) => {
+        matchString = `${matchString} {Phone Number}='${phone}',`
+      })
+      matchString = `OR(${matchString.slice(0, -1)})`
+      const phoneRecord = await this.findOne('Phone Numbers', matchString)
       if (phoneRecord) {
         return phoneRecord.get('Person')[0]
       }
@@ -262,13 +264,18 @@ class BNCAirtable {
       Source: formatText(rawNomination.Source),
       'Run for Office': formatText(rawNomination['Run for Office'])
     }
+
+    const nominatorEmails = rawNomination['Nominator Email'].split('\n').map((email) => formatEmail(email))
+    const nominatorPhones = rawNomination['Nominator Phone'].split('\n').map((phone) => formatPhoneNumber(phone))
+    const phones = rawNomination.Phone.split('\n').map((phone) => formatPhoneNumber(phone))
+    const emails = rawNomination.Email.split('\n').map((email) => formatEmail(email))
     const cleanedNomination = {
       nominatorName: formatText(rawNomination['Nominator Name']),
-      nominatorEmail: formatEmail(rawNomination['Nominator Email']),
-      nominatorPhone: formatPhoneNumber(rawNomination['Nominator Phone']),
+      nominatorEmails,
+      nominatorPhones,
       name: formatText(rawNomination.Name),
-      email: formatEmail(rawNomination.Email),
-      phone: formatPhoneNumber(rawNomination.Phone),
+      emails,
+      phones,
       city: toTitleCase(formatText(rawNomination.City)),
       stateCode: formatStateCode(rawNomination['State Name']),
       districtCode: formatDistrictCode(rawNomination['Congressional District Code']),
@@ -277,7 +284,7 @@ class BNCAirtable {
       twitter: formatLink(rawNomination.Twitter),
       politicalParty: formatPoliticalParty(rawNomination['Political Party']),
       sourceTeamName: formatSourceTeamName(rawNomination['Source Team Name']),
-      submitterEmail: formatEmail(rawNomination['Submitter Email']) || formatEmail(rawNomination['Nominator Email'])
+      submitterEmail: [formatEmail(rawNomination['Submitter Email']) || formatEmail(rawNomination['Nominator Email'])]
     }
 
     const state = await this.findOne('States', `{Abbreviation} = '${cleanedNomination.stateCode}'`)
@@ -291,25 +298,25 @@ class BNCAirtable {
     }
 
     let nominator = await this.matchPerson({
-      email: cleanedNomination.nominatorEmail,
-      phone: cleanedNomination.nominatorPhone
+      emails: cleanedNomination.nominatorEmails,
+      phones: cleanedNomination.nominatorPhones
     })
 
     nominator = await this.createOrUpdatePerson(nominator, {
       name: cleanedNomination.nominatorName,
-      email: cleanedNomination.nominatorEmail,
-      phone: cleanedNomination.nominatorPhone
+      emails: cleanedNomination.nominatorEmails,
+      phones: cleanedNomination.nominatorPhones
     })
 
     let submitter = await this.matchPerson({
-      email: cleanedNomination.submitterEmail
+      emails: cleanedNomination.submitterEmails
     })
     submitter = await this.createOrUpdatePerson(submitter, {
-      email: cleanedNomination.submitterEmail
+      emails: cleanedNomination.submitterEmails
     })
     let nominee = await this.matchPerson({
-      email: cleanedNomination.email,
-      phone: cleanedNomination.phone,
+      emails: cleanedNomination.emails,
+      phones: cleanedNomination.phones,
       facebook: cleanedNomination.facebook,
       linkedin: cleanedNomination.linkedin,
       twitter: cleanedNomination.twitter,
@@ -319,8 +326,8 @@ class BNCAirtable {
       districtId
     })
     nominee = await this.createOrUpdatePerson(nominee, {
-      email: cleanedNomination.email,
-      phone: cleanedNomination.phone,
+      emails: cleanedNomination.emails,
+      phones: cleanedNomination.phones,
       facebook: cleanedNomination.facebook,
       linkedin: cleanedNomination.linkedin,
       twitter: cleanedNomination.twitter,
