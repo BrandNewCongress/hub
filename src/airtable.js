@@ -374,26 +374,6 @@ class BNCAirtable {
     const createdNomination = await this.create('Nominations', nominationToSubmit)
     return createdNomination
   }
-
-  async createNomineeEvaluation(nominee, round, score, districtScore, moveToNextRound, evaluator, evaluationDate) {
-    const rounds = {
-      R1: 'R1 - Initial Eval',
-      R2: 'R2 - One Interview',
-      R3: 'R3 - Board Review',
-      R4: 'R4 - Extended Interviews',
-      R5: 'R5 - Board Review',
-      R6: 'R6 - Convince to Run'
-    }
-    const nomineeEvaluation = {
-      Nominee: [nominee.id],
-      Round: rounds[formatText(round)],
-      Score: score,
-      'District Score': formatText(districtScore),
-      'Move To Next Round': moveToNextRound ? 'Yes' : 'No',
-      Evaluator: [evaluator.id],
-      'Evaluation Date (Legacy)': formatDate(evaluationDate)
-    }
-  }
 }
 
 const BNCAirtableSingleton = new BNCAirtable()
