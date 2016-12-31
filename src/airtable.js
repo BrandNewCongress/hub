@@ -8,7 +8,7 @@ import {
   formatText,
   formatPhoneNumber,
   formatLink,
-  formatStateCode,
+  formatStateAbbreviation,
   formatDistrictCode,
   formatDistrict,
   formatPoliticalParty,
@@ -159,6 +159,7 @@ class BNCAirtable {
     }
 
     const addressIds = person.get('Addresses')
+    let createAddress = true
     if (!isEmpty(addressIds)) {
       let index = 0
       for (index = 0; index < addressIds.length; index++) {
@@ -180,7 +181,12 @@ class BNCAirtable {
           break
         }
       }
-      if (index === addressIds.length) {
+      if (index !== addressIds.length) {
+        createAddress = false
+      }
+    }
+    if (createAddress) {
+      if (!isEmpty(city) || !isEmpty(stateId) || !isEmpty(districtId)) {
         await this.create('Addresses', {
           City: city,
           State: stateId ? [stateId] : null,
@@ -265,10 +271,23 @@ class BNCAirtable {
       'Run for Office': formatText(rawNomination['Run for Office'])
     }
 
-    const nominatorEmails = rawNomination['Nominator Email'].split('\n').map((email) => formatEmail(email))
-    const nominatorPhones = rawNomination['Nominator Phone'].split('\n').map((phone) => formatPhoneNumber(phone))
-    const phones = rawNomination.Phone.split('\n').map((phone) => formatPhoneNumber(phone))
-    const emails = rawNomination.Email.split('\n').map((email) => formatEmail(email))
+    const nominatorEmails = rawNomination['Nominator Email']
+      .split('\n')
+      .map((email) => formatEmail(email))
+      .filter((email) => !isEmpty(email))
+    const nominatorPhones = rawNomination['Nominator Phone']
+      .split('\n')
+      .map((phone) => formatPhoneNumber(phone))
+      .filter((phone) => !isEmpty(phone))
+    const phones = rawNomination.Phone
+      .split('\n')
+      .map((phone) => formatPhoneNumber(phone))
+      .filter((phone) => !isEmpty(phone))
+    const emails = rawNomination.Email
+      .split('\n')
+      .map((email) => formatEmail(email))
+      .filter((email) => !isEmpty(email))
+
     const cleanedNomination = {
       nominatorName: formatText(rawNomination['Nominator Name']),
       nominatorEmails,
@@ -277,20 +296,20 @@ class BNCAirtable {
       emails,
       phones,
       city: toTitleCase(formatText(rawNomination.City)),
-      stateCode: formatStateCode(rawNomination['State Name']),
+      stateAbbreviation: formatStateAbbreviation(rawNomination['State Abbreviation']),
       districtCode: formatDistrictCode(rawNomination['Congressional District Code']),
       facebook: formatLink(rawNomination.Facebook),
       linkedIn: formatLink(rawNomination.LinkedIn),
       twitter: formatLink(rawNomination.Twitter),
       politicalParty: formatPoliticalParty(rawNomination['Political Party']),
       sourceTeamName: formatSourceTeamName(rawNomination['Source Team Name']),
-      submitterEmail: [formatEmail(rawNomination['Submitter Email']) || formatEmail(rawNomination['Nominator Email'])]
+      submitterEmails: [formatEmail(rawNomination['Submitter Email']) || formatEmail(rawNomination['Nominator Email'])]
     }
 
-    const state = await this.findOne('States', `{Abbreviation} = '${cleanedNomination.stateCode}'`)
+    const state = await this.findOne('States', `{Abbreviation} = '${cleanedNomination.stateAbbreviation}'`)
     const stateId = state ? state.id : null
 
-    const districtAbbreviation = formatDistrict(cleanedNomination.stateCode, cleanedNomination.districtCode)
+    const districtAbbreviation = formatDistrict(cleanedNomination.stateAbbreviation, cleanedNomination.districtCode)
     let districtId = null
     if (districtAbbreviation !== null) {
       const district = await this.findOne('Congressional Districts', `{ID} = '${districtAbbreviation}'`)

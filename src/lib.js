@@ -306,7 +306,7 @@ export function capitalizeText(text) {
   return toTitleCase(text.trim())
 }
 
-export function formatStateCode(state) {
+export function formatStateAbbreviation(state) {
   if (isEmpty(state)) {
     return null
   }
@@ -348,11 +348,11 @@ export function formatDistrictCode(district) {
   return null
 }
 
-export function formatDistrict(stateCode, districtCode) {
-  if (isEmpty(stateCode) || isEmpty(districtCode)) {
+export function formatDistrict(stateAbbreviation, districtCode) {
+  if (isEmpty(stateAbbreviation) || isEmpty(districtCode)) {
     return null
   }
-  return `${stateCode}-${districtCode}`
+  return `${stateAbbreviation}-${districtCode}`
 }
 
 export function formatPoliticalParty(politicalParty) {
