@@ -37,7 +37,7 @@ app.post('/nominations', wrap(async (req, res) => {
     Email: body.nomineeEmail,
     Phone: body.nomineePhone,
     City: body.nomineeCity,
-    'State Name': body.nomineeState,
+    'State Abbreviation': body.nomineeState,
     'Congressional District Code': body.nomineeDistrict,
     Facebook: body.nomineeFacebook,
     LinkedIn: body.nomineeLinkedIn,
