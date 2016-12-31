@@ -1,7 +1,82 @@
 import airtable from '../airtable'
 import Baby from 'babyparse'
-import { toTitleCase, formatEmail, formatText, formatPhoneNumber, formatLink, formatState, formatDistrict, isEmpty } from '../lib'
-import log from '../log'
+import { formatText } from '../lib'
+
+async function findEvaluator(name) {
+  const evaluators = {
+    alex: {
+      email: 'alex@brandnewcongress.org',
+      name: 'Alexandra Rojas',
+      facebook: 'http://facebook.com/alex.rojas.526',
+      city: 'Fullerton'
+    },
+    corbin: {
+      email: 'corbin@brandnewcongress.org',
+      name: 'Corbin Trent',
+      facebook: 'http://facebook.com/corbintrent',
+      city: 'Morristown'
+    },
+    issy: {
+      email: 'isra@brandnewcongress.org',
+      name: 'Isra Allison',
+      facebook: 'http://facebook.com/profile.php?id=100007761944903',
+      city: 'Charlotte'
+    },
+    haley: {
+      email: 'haley@brandnewcongress.org',
+      name: 'Haley Zink',
+      facebook: 'http://facebook.com/haley.zink.9',
+      city: 'St. Charles'
+    },
+    liam: {
+      email: 'liam@brandnewcongress.org',
+      name: 'Liam Clive',
+      facebook: 'http://facebook.com/liam.declivelowe'
+    },
+    nasim: {
+      email: 'nasim@brandnewcongress.org',
+      name: 'Nasim Thompson',
+      facebook: 'http://facebook.com/nasimthompson'
+    },
+    mary: {
+      email: 'mary@brandnewcongress.org',
+      name: 'Mary Nishimuta',
+      facebook: 'http://facebook.com/mary.nishimuta'
+    },
+    judie: {
+      email: 'judieschumacher@gmail.com',
+      name: 'Judie Schumacher',
+      facebook: 'http://facebook.com/judie.schumacher'
+    },
+    'alex/nasim': {
+      email: 'alex@brandnewcongress.org'
+    },
+    'corbin trent': {
+      email: 'corbin@brandnewcongress.org'
+    },
+    haly: {
+      email: 'haley@brandnewcongress.org'
+    },
+    isay: {
+      email: 'isra@brandnewcongress.org'
+    }
+  }
+  const formattedName = formatText(name)
+  console.log(formattedName, name)
+  if (formattedName) {
+    const evaluatorObj = evaluators[formattedName.toLowerCase()]
+    let evaluator = await airtable.matchPerson(evaluatorObj.email)
+    if (!evaluator) {
+      evaluator = await airtable.createOrUpdatePerson(null, {
+        emails: [evaluatorObj.email],
+        name: evaluatorObj.name,
+        facebook: evaluatorObj.facebook
+      })
+      return evaluator
+    }
+  }
+  return null
+}
 
 async function parse() {
   const parsedData = Baby.parseFiles(process.argv[3], {
@@ -53,10 +128,43 @@ async function parse() {
       'Source Team Name': sourceTeam
     }
 
-    await airtable.createNomination(rawNomination)
-    if (index === 10) {
-      break
+    const nomination = await airtable.createNomination(rawNomination)
+    const profile = formatText(row['Round 1 EVALUATION NOTES'])
+    const score = parseInt(formatText(row['Round 1 Score for NOMINEE (1 - 4)']), 10)
+    console.log(row)
+    console.log(row['Round 1 Score for FIT FOR DISTRICT (1 - 4)'], row['Round 1 EVALUATOR'])
+    const districtScore = parseInt(formatText(row['Round 1 Score for FIT FOR DISTRICT (1 - 4)']), 10)
+    let moveOn = formatText(row['Move on to ROUND 2? (Y/N)'])
+    if (moveOn === 'Y') {
+      moveOn = 'Yes'
+    } else if (moveOn === 'N') {
+      moveOn = 'No'
+    } else {
+      moveOn = null
     }
+    if (score || districtScore || moveOn) {
+      if (profile) {
+        await airtable.update('People', nomination.get('Person')[0], {
+          Profile: profile
+        })
+      }
+
+      const evaluator = await findEvaluator(row['Round 1 EVALUATOR'])
+      console.log(evaluator.id, nomination.get('Person'))
+      const round1Evaluation = {
+        Nominee: nomination.get('Person'),
+        Round: 'R1 - Initial Eval',
+        Score: score,
+        'District Score': districtScore.toString(),
+        'Move To Next Round': moveOn,
+        'Evaluation Date (Legacy)': new Date(row['Round 1 EVALUATION DATE']),
+        Evaluator: evaluator ? [evaluator.id] : null
+      }
+      console.log(round1Evaluation)
+      await airtable.create('Nominee Evaluations', round1Evaluation)
+    }
+
+    break
   }
 }
 
