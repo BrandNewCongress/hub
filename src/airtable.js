@@ -135,7 +135,7 @@ class BNCAirtable {
     if (!isEmpty(phones)) {
       for (let index = 0; index < phones.length; index++) {
         const phone = phones[index]
-        const existingPhone = await this.findOne('Phone Numbers', `{Phone Number} = '${phone}'`)
+        const existingPhone = await this.findOne('Phone Numbers', `{Phone Number} = "${phone}"`)
         if (!existingPhone) {
           await this.create('Phone Numbers', {
             'Phone Number': phone,
@@ -148,7 +148,7 @@ class BNCAirtable {
     if (!isEmpty(emails)) {
       for (let index = 0; index < emails.length; index++) {
         const email = emails[index]
-        const existingEmail = await this.findOne('Emails', `{Email} = '${email}'`)
+        const existingEmail = await this.findOne('Emails', `{Email} = "${email}"`)
         if (!existingEmail) {
           await this.create('Emails', {
             Email: email,
@@ -205,7 +205,9 @@ class BNCAirtable {
     if (!isEmpty(emails)) {
       let matchString = ''
       emails.forEach((email) => {
-        matchString = `${matchString} LOWER({Email})='${email.toLowerCase()}',`
+        if (!isEmpty(email)) {
+          matchString = `${matchString} LOWER({Email})="${email.toLowerCase()}",`
+        }
       })
       matchString = `OR(${matchString.slice(0, -1)})`
       const emailRecord = await this.findOne('Emails', matchString)
@@ -216,7 +218,7 @@ class BNCAirtable {
     if (!isEmpty(phones)) {
       let matchString = ''
       phones.forEach((phone) => {
-        matchString = `${matchString} {Phone Number}='${phone}',`
+        matchString = `${matchString} {Phone Number}="${phone}",`
       })
       matchString = `OR(${matchString.slice(0, -1)})`
       const phoneRecord = await this.findOne('Phone Numbers', matchString)
@@ -227,13 +229,13 @@ class BNCAirtable {
     if (facebook || linkedin || twitter) {
       let matchString = 'OR('
       if (facebook) {
-        matchString = `${matchString}{Facebook} = '${facebook}',`
+        matchString = `${matchString}{Facebook} = "${facebook}",`
       }
       if (linkedin) {
-        matchString = `${matchString}{LinkedIn} = '${linkedin}',`
+        matchString = `${matchString}{LinkedIn} = "${linkedin}",`
       }
       if (twitter) {
-        matchString = `${matchString}{Twitter} = '${twitter}',`
+        matchString = `${matchString}{Twitter} = "${twitter}",`
       }
       matchString = `${matchString.slice(0, -1)})`
 
@@ -244,7 +246,7 @@ class BNCAirtable {
     }
     if (name && (districtId || (city && stateId))) {
       const personRecords = await this.findAll('People', {
-        filterByFormula: `LOWER({Name}) = '${name.toLowerCase()}'`
+        filterByFormula: `LOWER({Name}) = "${name.toLowerCase()}"`
       })
       for (let index = 0; index < personRecords.length; index++) {
         const record = personRecords[index]
@@ -272,19 +274,23 @@ class BNCAirtable {
     }
 
     const nominatorEmails = rawNomination['Nominator Email']
-      .split('\n')
+      .replace(/\s+/g, ' ')
+      .split(' ')
       .map((email) => formatEmail(email))
       .filter((email) => !isEmpty(email))
     const nominatorPhones = rawNomination['Nominator Phone']
-      .split('\n')
+      .replace(/\s+/g, ' ')
+      .split(' ')
       .map((phone) => formatPhoneNumber(phone))
       .filter((phone) => !isEmpty(phone))
     const phones = rawNomination.Phone
-      .split('\n')
+      .replace(/\s+/g, ' ')
+      .split(' ')
       .map((phone) => formatPhoneNumber(phone))
       .filter((phone) => !isEmpty(phone))
     const emails = rawNomination.Email
-      .split('\n')
+      .replace(/\s+/g, ' ')
+      .split(' ')
       .map((email) => formatEmail(email))
       .filter((email) => !isEmpty(email))
 
@@ -306,13 +312,13 @@ class BNCAirtable {
       submitterEmails: [formatEmail(rawNomination['Submitter Email']) || formatEmail(rawNomination['Nominator Email'])]
     }
 
-    const state = await this.findOne('States', `{Abbreviation} = '${cleanedNomination.stateAbbreviation}'`)
+    const state = await this.findOne('States', `{Abbreviation} = "${cleanedNomination.stateAbbreviation}"`)
     const stateId = state ? state.id : null
 
     const districtAbbreviation = formatDistrict(cleanedNomination.stateAbbreviation, cleanedNomination.districtCode)
     let districtId = null
     if (districtAbbreviation !== null) {
-      const district = await this.findOne('Congressional Districts', `{ID} = '${districtAbbreviation}'`)
+      const district = await this.findOne('Congressional Districts', `{ID} = "${districtAbbreviation}"`)
       districtId = district ? district.id : null
     }
 
@@ -320,13 +326,11 @@ class BNCAirtable {
       emails: cleanedNomination.nominatorEmails,
       phones: cleanedNomination.nominatorPhones
     })
-
     nominator = await this.createOrUpdatePerson(nominator, {
       name: cleanedNomination.nominatorName,
       emails: cleanedNomination.nominatorEmails,
       phones: cleanedNomination.nominatorPhones
     })
-
     let submitter = await this.matchPerson({
       emails: cleanedNomination.submitterEmails
     })
@@ -359,7 +363,7 @@ class BNCAirtable {
 
     let sourceTeam = null
     if (cleanedNomination.sourceTeamName) {
-      sourceTeam = await this.findOne('Teams', `LOWER({Name}) = '${cleanedNomination.sourceTeamName.toLowerCase()}'`)
+      sourceTeam = await this.findOne('Teams', `LOWER({Name}) = "${cleanedNomination.sourceTeamName.toLowerCase()}"`)
     }
 
     const nominationToSubmit = {

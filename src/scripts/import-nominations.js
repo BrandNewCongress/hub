@@ -1,6 +1,7 @@
 import airtable from '../airtable'
 import Baby from 'babyparse'
 import { formatText } from '../lib'
+import fs from 'fs'
 
 async function findEvaluator(name) {
   const evaluators = {
@@ -48,6 +49,11 @@ async function findEvaluator(name) {
       name: 'Judie Schumacher',
       facebook: 'http://facebook.com/judie.schumacher'
     },
+    zack: {
+      email: 'zack@brandnewcongress.org',
+      name: 'Zack Exley',
+      facebook: 'http://facebook.com/zack.exley'
+    },
     'alex/nasim': {
       email: 'alex@brandnewcongress.org'
     },
@@ -62,25 +68,98 @@ async function findEvaluator(name) {
     }
   }
   const formattedName = formatText(name)
-  console.log(formattedName, name)
   if (formattedName) {
     const evaluatorObj = evaluators[formattedName.toLowerCase()]
-    let evaluator = await airtable.matchPerson(evaluatorObj.email)
-    if (!evaluator) {
-      evaluator = await airtable.createOrUpdatePerson(null, {
+    const evaluatorId = await airtable.matchPerson({
+      emails: [evaluatorObj.email]
+    })
+
+    if (!evaluatorId) {
+      const evaluator = await airtable.createOrUpdatePerson(null, {
         emails: [evaluatorObj.email],
         name: evaluatorObj.name,
         facebook: evaluatorObj.facebook
       })
-      return evaluator
+      return evaluator.id
     }
+    return evaluatorId
   }
   return null
 }
 
+function formatMoveOn(moveOn) {
+  let formattedMoveOn = formatText(moveOn)
+  if (moveOn === 'Y') {
+    formattedMoveOn = 'Yes'
+  } else if (formattedMoveOn === 'N') {
+    formattedMoveOn = 'No'
+  } else {
+    formattedMoveOn = null
+  }
+  return formattedMoveOn
+}
+
+function formatScore(score) {
+  let formattedScore = parseInt(formatText(score), 10)
+  if (isNaN(formattedScore)) {
+    return null
+  }
+  if (formattedScore > 4) {
+    formattedScore = 4
+  }
+  return formattedScore
+}
+
 async function parse() {
-  const parsedData = Baby.parseFiles(process.argv[3], {
+  async function createLog(contacterId, person, notes) {
+    const formattedNotes = formatText(notes)
+    if (!formattedNotes) {
+      return
+    }
+    const log = await airtable.create('Contact Logs', {
+      Contacter: [contacterId],
+      Person: [person.id]
+    })
+
+    const phoneNumbers = person.get('Phone Numbers')
+    await airtable.create('Call Logs', {
+      'Contact Log': [log.id],
+      'Phone Number': phoneNumbers ? [phoneNumbers[0]] : null,
+      Direction: null,
+      Result: null,
+      Notes: notes
+    })
+  }
+  const parsedData = Baby.parseFiles(`${process.argv[3]}/round1.csv`, {
     header: true
+  })
+
+  const round2DataRaw = Baby.parseFiles(`${process.argv[3]}/round2.csv`, {
+    header: true
+  })
+
+  const round2Data = {}
+
+  round2DataRaw.data.forEach((datum) => {
+    const name = datum['Nominee Name'].toLowerCase()
+    if (round2Data.hasOwnProperty(name)) {
+      throw new Error(`Duplicate name ${name}`)
+    }
+    round2Data[name] = datum
+  })
+
+  const round3DataRaw = Baby.parseFiles(`${process.argv[3]}/round3.csv`, {
+    header: true
+  })
+
+  const round3Data = {}
+
+  round3DataRaw.data.forEach((datum) => {
+    const name = datum['Nominee Name'].toLowerCase()
+    if (round3Data.hasOwnProperty(name)) {
+      throw new Error(`Duplicate name ${name}`)
+    }
+    round3Data[name] = datum
   })
 
   for (let index = 0; index < parsedData.data.length; index++) {
@@ -98,12 +177,14 @@ async function parse() {
       sourceTeam = 'Call Team'
     } else if (sourceTeam === 'BNC WG') {
       sourceTeam = 'BNC Staff'
+    } else if (sourceTeam === 'Research Team') {
+      sourceTeam = 'Candidate Research Team'
     }
     let district = row['Corrected CD info']
     const state = district.split('-')[0]
     district = district.split('-')[1]
     const rawNomination = {
-      'Date Submitted (Legacy)': new Date(row.Timestamp),
+      'Date Submitted (Legacy)': new Date(row.TImestamp),
       'Nominator Name': row['Your Name'],
       'Nominator Email': row['Your Email'],
       'Nominator Phone': row['Your Phone Number'],
@@ -128,44 +209,96 @@ async function parse() {
       'Source Team Name': sourceTeam
     }
 
+    console.log('ABOUT TO DO THIS SHIT')
     const nomination = await airtable.createNomination(rawNomination)
-    const profile = formatText(row['Round 1 EVALUATION NOTES'])
-    const score = parseInt(formatText(row['Round 1 Score for NOMINEE (1 - 4)']), 10)
-    console.log(row)
-    console.log(row['Round 1 Score for FIT FOR DISTRICT (1 - 4)'], row['Round 1 EVALUATOR'])
-    const districtScore = parseInt(formatText(row['Round 1 Score for FIT FOR DISTRICT (1 - 4)']), 10)
-    let moveOn = formatText(row['Move on to ROUND 2? (Y/N)'])
-    if (moveOn === 'Y') {
-      moveOn = 'Yes'
-    } else if (moveOn === 'N') {
-      moveOn = 'No'
-    } else {
-      moveOn = null
-    }
-    if (score || districtScore || moveOn) {
+    console.log("HERERERER")
+    const profile = formatText(row['Round 1\nEVALUATION NOTES'])
+    const score = formatScore(row['Round 1 Score for\nNOMINEE\n(1 - 4, 5 for famous people)'])
+    const districtScore = formatScore(row['Round 1 Score for\nFIT FOR DISTRICT\n(1 - 4)'])
+    let moveOn = formatMoveOn(row['Move on to ROUND 2?\n(Y/N)'])
+
+    if (score || districtScore || moveOn || profile) {
+      const nominee = await airtable.findById('People', nomination.get('Person')[0])
+      const nominator = await airtable.findById('People', nomination.get('Nominator')[0])
       if (profile) {
-        await airtable.update('People', nomination.get('Person')[0], {
+        await airtable.update('People', nominee.id, {
           Profile: profile
         })
       }
 
-      const evaluator = await findEvaluator(row['Round 1 EVALUATOR'])
-      console.log(evaluator.id, nomination.get('Person'))
-      const round1Evaluation = {
-        Nominee: nomination.get('Person'),
-        Round: 'R1 - Initial Eval',
-        Score: score,
-        'District Score': districtScore.toString(),
-        'Move To Next Round': moveOn,
-        'Evaluation Date (Legacy)': new Date(row['Round 1 EVALUATION DATE']),
-        Evaluator: evaluator ? [evaluator.id] : null
+      const evaluator = await findEvaluator(row['Round 1\nEVALUATOR'])
+      if (moveOn === null && score !== null) {
+        if (score === 4) {
+          moveOn = 'Yes'
+        } else {
+          moveOn = 'No'
+        }
       }
-      console.log(round1Evaluation)
+      const round1Evaluation = {
+        Nominee: [nominee.id],
+        Round: 'R1',
+        Score: score,
+        'District Score': districtScore ? districtScore.toString() : null,
+        'Move To Next Round': moveOn,
+        'Evaluation Date (Legacy)': new Date(row['Round 1\nEVALUATION DATE']),
+        Evaluator: evaluator ? [evaluator] : null
+      }
       await airtable.create('Nominee Evaluations', round1Evaluation)
+      const nomineeName = nominee.get('Name').toLowerCase()
+      const round2EvaluationData = round2Data[nomineeName]
+      if (round2EvaluationData) {
+        let round2Score = formatScore(round2EvaluationData['Round 2 Score of\nNOMINEE'])
+        const round2DistrictScore = parseInt(formatText(round2EvaluationData['Round 2 Score of\nFIT FOR DISTRICT\n(override if this changed since Round 1)']), 10)
+        const nominatorNotes = formatText(round2EvaluationData['Round 2 \nCommunication and Evaluation Notes with the\n\nNOMINATOR'])
+        const nomineeNotes = formatText(round2EvaluationData['Round 2 \nCommunication and Evaluation \nNotes with the\n\nNOMINEE'])
+        let round2MoveOn = formatMoveOn(round2EvaluationData['Move on to ROUND 3?'])
+        if (round2Score || round2DistrictScore || nomineeNotes || nominatorNotes || round2MoveOn) {
+          if (round2Score === 0) {
+            round2Score = null
+            round2MoveOn = 'Hold'
+          }
+          if (round2MoveOn === null && round2Score !== null) {
+            if (round2Score >= 3) {
+              round2MoveOn = 'Yes'
+            } else {
+              moveOn = 'No'
+            }
+          }
+          const round2evaluator = await findEvaluator(round2EvaluationData['Round 2 Evaluator'])
+          const round2Evaluation = {
+            Nominee: [nominee.id],
+            Round: 'R2',
+            Score: round2Score,
+            'District Score': round2DistrictScore ? round2DistrictScore.toString() : null,
+            'Move To Next Round': round2MoveOn,
+            'Evaluation Date (Legacy)': new Date(round2EvaluationData['Date Evaluated (date you rated the person in column I)']),
+            Evaluator: round2evaluator ? [round2evaluator] : null
+          }
+          await airtable.create('Nominee Evaluations', round2Evaluation)
+          await createLog(round2evaluator, nominator, nominatorNotes)
+          await createLog(round2evaluator, nominee, nomineeNotes)
+          delete round2Data[nomineeName]
+        }
+      }
+      const round3EvaluationData = round3Data[nomineeName]
+      if (round3EvaluationData) {
+        const round3MoveOn = formatMoveOn(round2EvaluationData['Board Decision to Move on to ROUND 4?'])
+        const round3Evaluation = {
+          Nominee: [nominee.id],
+          Round: 'R3',
+          'Move To Next Round': round3MoveOn
+        }
+        await airtable.create('Nominee Evaluations', round3Evaluation)
+        delete round3Data[nomineeName]
+      }
     }
-
-    break
+    if (index % 100 === 0) {
+      console.log(index, '/', parsedData.data.length)
+    }
   }
+  fs.writeFileSync('round2-updated.json', JSON.stringify(round2Data))
+  fs.writeFileSync('round3-updated.json', JSON.stringify(round3Data))
 }
 
 parse()
+.catch((ex) => console.log(ex))
