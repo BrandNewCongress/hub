@@ -209,9 +209,7 @@ async function parse() {
       'Source Team Name': sourceTeam
     }
 
-    console.log('ABOUT TO DO THIS SHIT')
     const nomination = await airtable.createNomination(rawNomination)
-    console.log("HERERERER")
     const profile = formatText(row['Round 1\nEVALUATION NOTES'])
     const score = formatScore(row['Round 1 Score for\nNOMINEE\n(1 - 4, 5 for famous people)'])
     const districtScore = formatScore(row['Round 1 Score for\nFIT FOR DISTRICT\n(1 - 4)'])
