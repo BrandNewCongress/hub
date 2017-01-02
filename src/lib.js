@@ -230,6 +230,8 @@ const states = [
   }
 ]
 
+const atLargeStates = ['AK', 'DE', 'MT', 'ND', 'SD', 'VT', 'WY']
+
 export function toTitleCase(str) {
   return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
 }
@@ -273,13 +275,13 @@ export function formatPhoneNumber(number) {
   if (isEmpty(number)) {
     return null
   }
-  let formattedNumber = number.trim().replace(/\D/g, '')  
+  const formattedNumber = number.trim().replace(/\D/g, '')
 
   try {
     return phoneUtil.format(phoneUtil.parse(formattedNumber, 'US'), PNF.INTERNATIONAL)
   } catch (ex) {
-    return null
     log.warn('Badly formatted phone number: ', formattedNumber)
+    return null
   }
 }
 
@@ -287,7 +289,7 @@ export function formatLink(link) {
   if (isEmpty(link)) {
     return null
   }
-  let formattedLink = link.trim().toLowerCase()
+  const formattedLink = link.trim().toLowerCase()
   if (formattedLink.match('.com')) {
     try {
       return normalizeUrl(formattedLink)
@@ -295,7 +297,7 @@ export function formatLink(link) {
       log.warn('Badly formatted link: ', link)
       return null
     }
-  } 
+  }
   return null
 }
 
@@ -349,7 +351,14 @@ export function formatDistrictCode(district) {
 }
 
 export function formatDistrict(stateAbbreviation, districtCode) {
-  if (isEmpty(stateAbbreviation) || isEmpty(districtCode)) {
+  if (isEmpty(stateAbbreviation)) {
+    return null
+  }
+  if (atLargeStates.indexOf(stateAbbreviation) !== -1) {
+    return `${stateAbbreviation}-AL`
+  }
+
+  if (isEmpty(districtCode)) {
     return null
   }
   return `${stateAbbreviation}-${districtCode}`
