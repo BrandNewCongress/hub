@@ -6,7 +6,7 @@ import wrap from './wrap'
 import mail from './mail'
 import maestro from './maestro'
 import airtable from './airtable'
-import { formatDistrict, isEmpty } from './lib'
+import { isEmpty } from './lib'
 
 const app = express()
 const port = process.env.PORT
