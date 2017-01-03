@@ -200,7 +200,10 @@ class BNCAirtable {
   }
 
   escapeString(str) {
-    return str.replace(/"/g, '\\"')
+    if (str) {
+      return str.replace(/"/g, '\\"')
+    }
+    return str
   }
 
   async matchPerson({
@@ -249,7 +252,6 @@ class BNCAirtable {
       }
     }
     if (name && (districtId || (city && stateId))) {
-      console.log(`LOWER({Name}) = "${this.escapeString(name.toLowerCase())}"`)
       const personRecords = await this.findAll('People', {
         filterByFormula: `LOWER({Name}) = "${this.escapeString(name.toLowerCase())}"`
       })
