@@ -1,7 +1,8 @@
 import airtable from '../airtable'
 import Baby from 'babyparse'
-import { formatText } from '../lib'
+import { formatText, isEmpty } from '../lib'
 import fs from 'fs'
+import log from '../log'
 
 const evaluators = {
   alex: {
@@ -129,7 +130,7 @@ async function parse() {
     const phoneNumbers = person.get('Phone Numbers')
     await airtable.create('Call Logs', {
       'Contact Log': [log.id],
-      'Phone Number': phoneNumbers ? [phoneNumbers[0]] : null,
+      'Phone Number': !isEmpty(phoneNumbers) ? [phoneNumbers[0]] : null,
       Direction: null,
       Result: null,
       Notes: notes
@@ -148,9 +149,10 @@ async function parse() {
   round2DataRaw.data.forEach((datum) => {
     const name = datum['Nominee Name'].toLowerCase()
     if (round2Data.hasOwnProperty(name)) {
-      throw new Error(`Duplicate name ${name}`)
+      log.warn(`Duplicate name ${name}`)
+    } else {
+      round2Data[name] = datum
     }
-    round2Data[name] = datum
   })
 
   const round3DataRaw = Baby.parseFiles(`${process.argv[3]}/round3.csv`, {
@@ -162,9 +164,10 @@ async function parse() {
   round3DataRaw.data.forEach((datum) => {
     const name = datum['Nominee Name'].toLowerCase()
     if (round3Data.hasOwnProperty(name)) {
-      throw new Error(`Duplicate name ${name}`)
+      log.warn(`Duplicate name ${name}`)
+    } else {
+      round3Data[name] = datum
     }
-    round3Data[name] = datum
   })
 
   for (let index = 0; index < parsedData.data.length; index++) {
@@ -213,6 +216,10 @@ async function parse() {
       Source: 'BNC Website',
       'Source Team Name': sourceTeam
     }
+    if (isEmpty(rawNomination.Name)) {
+      continue
+    }
+    console.log(`Processing ${rawNomination.Name}...`)
 
     const nomination = await airtable.createNomination(rawNomination)
     const profile = formatText(row['Round 1 \nEVALUATION NOTES'])
@@ -247,7 +254,10 @@ async function parse() {
         Evaluator: evaluator ? [evaluator] : null
       }
       await airtable.create('Nominee Evaluations', round1Evaluation)
-      const nomineeName = nominee.get('Name').toLowerCase()
+      let nomineeName = nominee.get('Name')
+      if (!isEmpty(nomineeName)) {
+        nomineeName = nomineeName.toLowerCase()
+      }
       const round2EvaluationData = round2Data[nomineeName]
       if (round2EvaluationData) {
         let round2Score = formatScore(round2EvaluationData['Round 2 Score of\nNOMINEE'])
