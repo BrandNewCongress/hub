@@ -17,7 +17,7 @@ if (isClient()) {
   }
 } else {
   let enableRollbar = false
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV === 'production') {
     enableRollbar = true
     rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN)
     const options = {
