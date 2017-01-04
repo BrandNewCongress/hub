@@ -1,4 +1,5 @@
 import minilog from 'minilog'
+import rollbar from 'rollbar'
 
 function isClient() {
   return typeof window !== 'undefined'
@@ -15,11 +16,14 @@ if (isClient()) {
     existingErrorLogger(err)
   }
 } else {
-  const rollbar = require('rollbar')
   let enableRollbar = false
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'production') {
     enableRollbar = true
     rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN)
+    const options = {
+      exitOnUncaughtException: true
+    }
+    rollbar.handleUncaughtExceptions(process.env.ROLLBAR_ACCESS_TOKEN, options);
   }
 
   minilog.suggest.deny(/.*/, process.env.NODE_ENV === 'development' ? 'debug' : 'debug')
@@ -31,7 +35,6 @@ if (isClient()) {
   logInstance = minilog('backend')
   const existingErrorLogger = logInstance.error
   logInstance.error = (err) => {
-    console.error(err)
     if (enableRollbar) {
       if (typeof err === 'object') {
         rollbar.handleError(err)
@@ -41,7 +44,7 @@ if (isClient()) {
         rollbar.reportMessage('Got backend error with no error message')
       }
     }
-    existingErrorLogger(err ? err.stack : err)
+    existingErrorLogger(err.stack ? err.stack : err)
   }
 }
 
