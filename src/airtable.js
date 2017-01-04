@@ -281,19 +281,23 @@ class BNCAirtable {
     }
 
     const nominatorEmails = rawNomination['Nominator Email']
-      .split('\n')
+      .replace(/\n/, ';')
+      .split(';')
       .map((email) => formatEmail(email))
       .filter((email) => !isEmpty(email))
     const nominatorPhones = rawNomination['Nominator Phone']
-      .split('\n')
+      .replace(/\n/, ';')
+      .split(';')
       .map((phone) => formatPhoneNumber(phone))
       .filter((phone) => !isEmpty(phone))
     const phones = rawNomination.Phone
-      .split('\n')
+      .replace(/\n/, ';')
+      .split(';')
       .map((phone) => formatPhoneNumber(phone))
       .filter((phone) => !isEmpty(phone))
     const emails = rawNomination.Email
-      .split('\n')
+      .replace(/\n/, ';')
+      .split(';')
       .map((email) => formatEmail(email))
       .filter((email) => !isEmpty(email))
 
