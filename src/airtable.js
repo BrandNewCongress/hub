@@ -280,26 +280,26 @@ class BNCAirtable {
       'Run for Office': formatText(rawNomination['Run for Office'])
     }
 
-    const nominatorEmails = rawNomination['Nominator Email']
+    const nominatorEmails = rawNomination['Nominator Email'] ? rawNomination['Nominator Email']
       .replace(/\n/, ';')
       .split(';')
       .map((email) => formatEmail(email))
-      .filter((email) => !isEmpty(email))
-    const nominatorPhones = rawNomination['Nominator Phone']
+      .filter((email) => !isEmpty(email)) : null
+    const nominatorPhones = rawNomination['Nominator Phone'] ? rawNomination['Nominator Phone']
       .replace(/\n/, ';')
       .split(';')
       .map((phone) => formatPhoneNumber(phone))
-      .filter((phone) => !isEmpty(phone))
-    const phones = rawNomination.Phone
+      .filter((phone) => !isEmpty(phone)) : null
+    const phones = rawNomination.Phone ? rawNomination.Phone
       .replace(/\n/, ';')
       .split(';')
       .map((phone) => formatPhoneNumber(phone))
-      .filter((phone) => !isEmpty(phone))
-    const emails = rawNomination.Email
+      .filter((phone) => !isEmpty(phone)) : null
+    const emails = rawNomination.Email ? rawNomination.Email
       .replace(/\n/, ';')
       .split(';')
       .map((email) => formatEmail(email))
-      .filter((email) => !isEmpty(email))
+      .filter((email) => !isEmpty(email)) : null
 
     const cleanedNomination = {
       nominatorName: formatText(rawNomination['Nominator Name']),
