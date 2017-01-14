@@ -274,7 +274,7 @@ async function parse() {
             if (round2Score >= 3) {
               round2MoveOn = 'Yes'
             } else {
-              moveOn = 'No'
+              round2MoveOn = 'No'
             }
           }
           if (round2MoveOn === null && round2DistrictScore !== null) {
