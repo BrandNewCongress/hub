@@ -258,7 +258,7 @@ export function formatDate(date) {
 }
 
 export function formatEmail(email) {
-  if (isEmpty(email)) {
+  if (isEmpty(email) || email.match('@') === null) {
     return null
   }
   return email.trim().toLowerCase()
