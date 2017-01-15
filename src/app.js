@@ -22,6 +22,14 @@ app.use((req, res, next) => {
   return next()
 })
 
+app.get('/teams', wrap(async (req, res) => {
+  let teams = await airtable.findAll('Teams')
+  teams = teams.map((team) => ({
+    name: team.get('Name'),
+  }))
+  res.send(JSON.stringify(teams))
+}))
+
 app.post('/nominations', wrap(async (req, res) => {
   const body = req.body
   if (!body.nominatorName || !body.nominatorEmail || !body.nominatorPhone || !body.nomineeName) {
