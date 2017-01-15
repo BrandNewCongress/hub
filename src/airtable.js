@@ -19,7 +19,7 @@ class BNCAirtable {
   constructor() {
     this.base = new Airtable({
       apiKey: process.env.AIRTABLE_API_KEY
-    }).base(process.env.AIRTABLE_BASE)
+    }).base(process.env.AIRTABLE_BASE)    
   }
 
   async findAll(table, filterOptions) {
@@ -355,6 +355,24 @@ class BNCAirtable {
       stateId,
       districtId
     })
+
+    if (nominee) {
+      const person = await this.findById('People', nominee)
+      const evaluations = person.get('Evaluations')
+      for (let index = 0; index < evaluations.length; index++) {
+        const evaluation = await this.findById('Nominee Evaluations', evaluations[index])
+        if (evaluation.get('Round') === 'R1') {
+          if (evaluation.get('Move To Next Round') === 'No') {
+            await this.create('Nominee Evaluations', {
+              Nominee: [person.id],
+              Round: 'R1',
+              'Move To Next Round': 'Reevaluate'
+            })
+          }
+        }
+        break
+      }
+    }
     nominee = await this.createOrUpdatePerson(nominee, {
       emails: cleanedNomination.emails,
       phones: cleanedNomination.phones,
@@ -382,8 +400,8 @@ class BNCAirtable {
       Submitter: [submitter.id],
       Nominator: [nominator.id]
     }
-    const createdNomination = await this.create('Nominations', nominationToSubmit)
-    return createdNomination
+//    const createdNomination = await this.create('Nominations', nominationToSubmit)
+//    return createdNomination
   }
 }
 
