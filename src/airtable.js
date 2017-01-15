@@ -400,8 +400,8 @@ class BNCAirtable {
       Submitter: [submitter.id],
       Nominator: [nominator.id]
     }
-//    const createdNomination = await this.create('Nominations', nominationToSubmit)
-//    return createdNomination
+    const createdNomination = await this.create('Nominations', nominationToSubmit)
+    return createdNomination
   }
 }
 
