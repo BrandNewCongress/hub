@@ -6,6 +6,7 @@ import wrap from './wrap'
 import mail from './mail'
 import maestro from './maestro'
 import airtable from './airtable'
+import nationbuilder from './nationbuilder'
 import { isEmpty } from './lib'
 
 const app = express()
@@ -25,7 +26,7 @@ app.use((req, res, next) => {
 app.get('/teams', wrap(async (req, res) => {
   let teams = await airtable.findAll('Teams')
   teams = teams.map((team) => ({
-    name: team.get('Name'),
+    name: team.get('Name')
   }))
   res.send(JSON.stringify(teams))
 }))
@@ -36,6 +37,12 @@ app.post('/nominations', wrap(async (req, res) => {
     res.sendStatus(400)
     return
   }
+
+  await nationbuilder.createPerson({
+    name: body.nominatorName,
+    email: body.nominatorEmail,
+    phone: body.nominatorPhone
+  })
 
   const nomination = {
     'Nominator Name': body.nominatorName,
@@ -73,33 +80,14 @@ app.post('/nominations', wrap(async (req, res) => {
 
 app.post('/people', wrap(async (req, res) => {
   const body = req.body
-  let nameParts = null
-  let firstName = null
-  let lastName = null
-  const phone = body.hasOwnProperty('phone') ? body.phone : null
-  if (body.hasOwnProperty('fullName')) {
-    nameParts = body.fullName.split(/\s+/)
-  }
-  if (nameParts) {
-    firstName = nameParts.shift()
-    lastName = nameParts.join(' ')
-  }
-  const requestBody = {
-    person: {
-      phone,
-      first_name: firstName,
-      last_name: lastName,
-      email1: body.email,
-      mailing_address: {
-        zip: body.zip
-      }
+  const response = await nationbuilder.createPerson({
+    name: body.fullName,
+    email: body.email,
+    phone: body.phone,
+    address: {
+      zip: body.zip
     }
-  }
-
-  let response = null
-  response = await axios
-    .post(`https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people?access_token=${process.env.NATIONBUILDER_TOKEN}`, requestBody, { headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, validateStatus: () => true })
-
+  })
   if (response && (response.status === 201 || response.status === 409)) {
     await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', 'signup', { name: 'Friend' })
     res.sendStatus(200)
