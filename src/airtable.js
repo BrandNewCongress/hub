@@ -359,18 +359,20 @@ class BNCAirtable {
     if (nominee) {
       const person = await this.findById('People', nominee)
       const evaluations = person.get('Evaluations')
-      for (let index = 0; index < evaluations.length; index++) {
-        const evaluation = await this.findById('Nominee Evaluations', evaluations[index])
-        if (evaluation.get('Round') === 'R1') {
-          if (evaluation.get('Move To Next Round') === 'No') {
-            await this.create('Nominee Evaluations', {
-              Nominee: [person.id],
-              Round: 'R1',
-              'Move To Next Round': 'Reevaluate'
-            })
+      if (evaluations) {
+        for (let index = 0; index < evaluations.length; index++) {
+          const evaluation = await this.findById('Nominee Evaluations', evaluations[index])
+          if (evaluation.get('Round') === 'R1') {
+            if (evaluation.get('Move To Next Round') === 'No') {
+              await this.create('Nominee Evaluations', {
+                Nominee: [person.id],
+                Round: 'R1',
+                'Move To Next Round': 'Reevaluate'
+              })
+            }
           }
+          break
         }
-        break
       }
     }
     nominee = await this.createOrUpdatePerson(nominee, {
