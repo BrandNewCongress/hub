@@ -89,7 +89,11 @@ app.post('/people', wrap(async (req, res) => {
     }
   })
   if (response && (response.status === 201 || response.status === 409)) {
-    await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', 'signup', { name: 'Friend' })
+    let signupTemplate = 'bnc-signup'
+    if (body.source === 'justicedemocrats') {
+      signupTemplate = 'jd-signup'
+    }
+    await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', signupTemplate, { name: 'Friend' })
     res.sendStatus(200)
   } else {
     res.sendStatus(400)
