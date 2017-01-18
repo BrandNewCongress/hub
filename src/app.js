@@ -74,8 +74,11 @@ app.post('/nominations', wrap(async (req, res) => {
   }
 
   await airtable.createNomination(nomination)
-
-  res.sendStatus(200)
+  if (body.redirect) {
+    res.redirect(body.redirect)
+  } else {
+    res.sendStatus(200)
+  }
 }))
 
 app.post('/people', wrap(async (req, res) => {
@@ -94,9 +97,13 @@ app.post('/people', wrap(async (req, res) => {
       signupTemplate = 'jd-signup'
     }
     await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', signupTemplate, { name: 'Friend' })
-    res.sendStatus(200)
   } else {
-    res.sendStatus(400)
+    log.error(`Error on signup: ${response.status}`)
+  }
+  if (body.redirect) {
+    res.redirect(body.redirect)
+  } else {
+    res.sendStatus(200)
   }
 }))
 
