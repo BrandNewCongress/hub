@@ -17,11 +17,15 @@ The website interacts with some external APIs.  Instructions for how to test thi
 
 ### Nationbuilder
 
-The website uses Nationbuilder as its backing CRM.  This is where it posts signups to and event data to. To test out code that hits Nationbuilder, you are free to use our development sandbox (the API token for which is in the .env file).  You can log in to the [admin interface](https://evanowski.nationbuilder.com/admin) with username `eowski@gmail.com` and password `abc123456`.
+The API uses Nationbuilder as its backing CRM.  This is where it posts signups to and event data to. To test out code that hits Nationbuilder, you are free to use our development sandbox (the API token for which is in the .env file).  You can log in to the [admin interface](https://evanowski.nationbuilder.com/admin) with username `eowski@gmail.com` and password `abc123456`.
 
 ### Mailgun
 
-The website uses Mailgun to send emails.  In dev, we use a sandbox account that requires you to be added as a verified recipient.  Request permission from @saikat in Slack to test emails.
+The API uses Mailgun to send emails.  In dev, we use a sandbox account that requires you to be added as a verified recipient.  Request permission from @saikat in Slack to test emails.
+
+### Airtable
+
+The API uses Airtable to track candidates and nominations. You can create your own Airtable account to get an API key [see here](https://support.airtable.com/hc/en-us/articles/219046777-How-do-I-get-my-API-key-) and then ask @saikat for access to the test Airtable database. 
 
 ### Maestro
 
