@@ -23,7 +23,7 @@ if (isClient()) {
     const options = {
       exitOnUncaughtException: true
     }
-    rollbar.handleUncaughtExceptions(process.env.ROLLBAR_ACCESS_TOKEN, options);
+    rollbar.handleUncaughtExceptions(process.env.ROLLBAR_ACCESS_TOKEN, options)
   }
 
   minilog.suggest.deny(/.*/, process.env.NODE_ENV === 'development' ? 'debug' : 'debug')
