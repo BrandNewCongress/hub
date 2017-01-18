@@ -24,6 +24,7 @@ app.use((req, res, next) => {
 })
 
 app.get('/teams', wrap(async (req, res) => {
+  throw new Error('Test error')
   let teams = await airtable.findAll('Teams')
   teams = teams.map((team) => ({
     name: team.get('Name')
