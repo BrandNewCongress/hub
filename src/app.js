@@ -70,7 +70,9 @@ app.post('/nominations', wrap(async (req, res) => {
     Source: isEmpty(body.source) ? 'BNC Website' : body.source,
     'Source Details': body.sourceDetails,
     'Source Team Name': body.sourceTeamName,
-    'Submitter Email': body.submitterEmail
+    'Submitter Email': body.submitterEmail,
+    Profile: body.nomineeProfile,
+    'Other Links': body.nomineeLinks
   }
 
   await airtable.createNomination(nomination)

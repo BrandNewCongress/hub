@@ -97,7 +97,9 @@ class BNCAirtable {
     city,
     politicalParty,
     stateId,
-    districtId
+    districtId,
+    profile,
+    otherLinks
   }) {
     let person = null
     if (personId) {
@@ -127,6 +129,12 @@ class BNCAirtable {
     }
     if (isEmpty(person.get('Political Party')) && politicalParty) {
       personFieldsToUpdate['Political Party'] = politicalParty
+    }
+    if (isEmpty(person.get('Profile')) && profile) {
+      personFieldsToUpdate['Profile'] = profile
+    }
+    if (isEmpty(person.get('Other Links')) && otherLinks) {
+      personFieldsToUpdate['Other Links'] = otherLinks
     }
     if (Object.keys(personFieldsToUpdate).length > 0) {
       await this.update('People', person.id, personFieldsToUpdate)
@@ -308,6 +316,8 @@ class BNCAirtable {
       name: formatText(rawNomination.Name),
       emails,
       phones,
+      profile: formatText(rawNomination.Profile),
+      otherLinks: formatText(rawNomination['Other Links']),
       city: rawNomination.City ? toTitleCase(formatText(rawNomination.City)) : null,
       stateAbbreviation: formatStateAbbreviation(rawNomination['State Abbreviation']),
       districtCode: formatDistrictCode(rawNomination['Congressional District Code']),
@@ -384,6 +394,8 @@ class BNCAirtable {
       name: cleanedNomination.name,
       city: cleanedNomination.city,
       politicalParty: cleanedNomination.politicalParty,
+      profile: cleanedNomination.profile,
+      otherLinks: cleanedNomination.otherLinks,
       stateId,
       districtId
     })
