@@ -330,25 +330,26 @@ export function formatStateAbbreviation(state) {
   return null
 }
 
-export function formatDistrictCode(district) {
-  if (isEmpty(district)) {
+  export function formatDistrictCode(district) {
+    if (isEmpty(district)) {
+      return null
+    }
+
+    let districtNumber = district.trim()
+    if (districtNumber.match('-')) {
+      districtNumber = districtNumber.split('-')[1]
+    }
+    if (districtNumber.toUpperCase() === 'AL') {
+      return 'AL'
+    }
+
+    districtNumber = parseInt(districtNumber.trim(), 10)
+    console.log(districtNumber)
+    if (!isNaN(districtNumber)) {
+      return (`0${districtNumber.toString()}`).slice(-2)
+    }
     return null
   }
-
-  let districtNumber = district.trim()
-  if (districtNumber.match('-')) {
-    districtNumber = districtNumber.split('-')[1]
-  }
-  if (districtNumber.toUpperCase() === 'AL') {
-    return 'AL'
-  }
-
-  districtNumber = parseInt(district.trim(), 10)
-  if (!isNaN(districtNumber)) {
-    return districtNumber.toString()
-  }
-  return null
-}
 
 export function formatDistrict(stateAbbreviation, districtCode) {
   if (isEmpty(stateAbbreviation)) {
