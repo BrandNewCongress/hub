@@ -9,7 +9,9 @@ import airtable from './airtable'
 import { isEmpty } from './lib'
 import kue from 'kue'
 
-const queue = kue.createQueue(process.env.REDIS_URL)
+const queue = kue.createQueue({
+  redis: process.env.REDIS_URL
+})
 const app = express()
 const port = process.env.PORT
 async function saveKueJob(job) {
