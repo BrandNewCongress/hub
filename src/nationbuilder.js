@@ -20,7 +20,10 @@ class Nationbuilder {
     name,
     email,
     phone,
-    address
+    address,
+    utmSource,
+    utmMedium,
+    utmCampaign
   }) {
     let nameParts = null
     let firstName = null
@@ -41,7 +44,19 @@ class Nationbuilder {
         mailing_address: address
       }
     }
-    return this.makeRequest('POST', 'people', requestBody)
+    const response = await this.makeRequest('POST', 'people', requestBody)
+    if (response && (response.status === 201 || response.status === 409)) {
+      const personId = response.data.id
+      await this.updatePerson(personId, {
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_campaign: utmCampaign
+      })
+    }
+    return response
+  }
+  async updatePerson(id, fields) {
+    return this.makeRequest('PUT', `people/${id}`, fields)
   }
 }
 

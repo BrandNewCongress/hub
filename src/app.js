@@ -41,7 +41,10 @@ app.post('/nominations', wrap(async (req, res) => {
   await nationbuilder.createPerson({
     name: body.nominatorName,
     email: body.nominatorEmail,
-    phone: body.nominatorPhone
+    phone: body.nominatorPhone,
+    utm_source: body.utmSource,
+    utm_medium: body.utmMedium,
+    utm_campaign: body.utmCampaign
   })
 
   const nomination = {
@@ -72,7 +75,10 @@ app.post('/nominations', wrap(async (req, res) => {
     'Source Team Name': body.sourceTeamName,
     'Submitter Email': body.submitterEmail,
     Profile: body.nomineeProfile,
-    'Other Links': body.nomineeLinks
+    'Other Links': body.nomineeLinks,
+    'UTM Source': body.utmSource,
+    'UTM Medium': body.utmMedium,
+    'UTM Campaign': body.utmCampaign
   }
 
   await airtable.createNomination(nomination)
@@ -91,7 +97,10 @@ app.post('/people', wrap(async (req, res) => {
     phone: body.phone,
     address: {
       zip: body.zip
-    }
+    },
+    utm_source: body.utmSource,
+    utm_medium: body.utmMedium,
+    utm_campaign: body.utmCampaign
   })
   if (response && (response.status === 201 || response.status === 409)) {
     let signupTemplate = 'bnc-signup'
