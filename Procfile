@@ -1,3 +1,3 @@
 web: npm start
-worker: num run worker
+worker: npm run worker
 dashboard: npm run kue-dashboard
