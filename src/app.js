@@ -42,8 +42,8 @@ app.use((req, res, next) => {
   })
   return next()
 })
-app.use('/queue', kue.app);
-app.use('/queue-ui', ui.app);
+app.use('/queue', kue.app)
+app.use('/queue-ui', ui.app)
 
 app.get('/teams', wrap(async (req, res) => {
   let teams = await airtable.findAll('Teams')
@@ -126,7 +126,7 @@ app.post('/people', wrap(async (req, res) => {
     utmMedium: body.utmMedium,
     utmCampaign: body.utmCampaign
   })
-  await saveKueJob(createJob)
+  await saveKueJob(createJob.attempts(3))
   let signupTemplate = 'bnc-signup'
   if (body.source === 'justicedemocrats') {
     signupTemplate = 'jd-signup'
