@@ -8,16 +8,24 @@ import maestro from './maestro'
 import airtable from './airtable'
 import { isEmpty } from './lib'
 import kue from 'kue'
-import ui from 'kue-ui'
+import basicAuth from 'basic-auth'
+
+function auth(username, password) {
+  return (req, res, next) => {
+    const user = basicAuth(req)
+
+    if (!user || user.name !== username || user.pass !== password) {
+      res.set('WWW-Authenticate', 'Basic realm=Authorization Required')
+      return res.send(401)
+    }
+    return next()
+  }
+}
 
 const queue = kue.createQueue({
   redis: process.env.REDIS_URL
 })
-ui.setup({
-  apiURL: '/queue',
-  baseURL: '/queue-ui',
-  updateInterval: 5000
-})
+
 const app = express()
 const port = process.env.PORT
 async function saveKueJob(job) {
@@ -42,9 +50,7 @@ app.use((req, res, next) => {
   })
   return next()
 })
-app.use('/queue', kue.app)
-app.use('/queue-ui', ui.app)
-
+app.use('/queue', auth('admin', process.env.QUEUE_PASSWORD), kue.app)
 app.get('/teams', wrap(async (req, res) => {
   let teams = await airtable.findAll('Teams')
   teams = teams.map((team) => ({
