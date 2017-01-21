@@ -42,9 +42,9 @@ app.post('/nominations', wrap(async (req, res) => {
     name: body.nominatorName,
     email: body.nominatorEmail,
     phone: body.nominatorPhone,
-    utm_source: body.utmSource,
-    utm_medium: body.utmMedium,
-    utm_campaign: body.utmCampaign
+    utmSource: body.utmSource,
+    utmMedium: body.utmMedium,
+    utmCampaign: body.utmCampaign
   })
 
   const nomination = {
@@ -91,6 +91,7 @@ app.post('/nominations', wrap(async (req, res) => {
 
 app.post('/people', wrap(async (req, res) => {
   const body = req.body
+  console.log(body.utmSource)
   const response = await nationbuilder.createPerson({
     name: body.fullName,
     email: body.email,
@@ -98,9 +99,9 @@ app.post('/people', wrap(async (req, res) => {
     address: {
       zip: body.zip
     },
-    utm_source: body.utmSource,
-    utm_medium: body.utmMedium,
-    utm_campaign: body.utmCampaign
+    utmSource: body.utmSource,
+    utmMedium: body.utmMedium,
+    utmCampaign: body.utmCampaign
   })
   if (response && (response.status === 201 || response.status === 409)) {
     let signupTemplate = 'bnc-signup'
