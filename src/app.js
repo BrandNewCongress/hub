@@ -8,9 +8,15 @@ import maestro from './maestro'
 import airtable from './airtable'
 import { isEmpty } from './lib'
 import kue from 'kue'
+import ui from 'kue-ui'
 
 const queue = kue.createQueue({
   redis: process.env.REDIS_URL
+})
+ui.setup({
+  apiURL: '/queue',
+  baseURL: '/queue-ui',
+  updateInterval: 5000
 })
 const app = express()
 const port = process.env.PORT
@@ -36,6 +42,8 @@ app.use((req, res, next) => {
   })
   return next()
 })
+app.use('/queue', kue.app);
+app.use('/queue-ui', ui.app);
 
 app.get('/teams', wrap(async (req, res) => {
   let teams = await airtable.findAll('Teams')
