@@ -46,11 +46,13 @@ class Nationbuilder {
     }
     const response = await this.makeRequest('POST', 'people', requestBody)
     if (response && (response.status === 201 || response.status === 409)) {
-      const personId = response.data.id
+      const personId = response.data.person.id
       await this.updatePerson(personId, {
-        utm_source: utmSource,
-        utm_medium: utmMedium,
-        utm_campaign: utmCampaign
+        person: {
+          utm_source: utmSource,
+          utm_medium: utmMedium,
+          utm_campaign: utmCampaign
+        }
       })
     }
     return response
