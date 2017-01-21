@@ -1,1 +1,4 @@
 server: npm run dev-start
+redis: redis-server
+worker: npm run dev-worker
+dashboard: npm run kue-dashboard

@@ -25,7 +25,7 @@ The API uses Mailgun to send emails.  In dev, we use a sandbox account that requ
 
 ### Airtable
 
-The API uses Airtable to track candidates and nominations. You can create your own Airtable account to get an API key [see here](https://support.airtable.com/hc/en-us/articles/219046777-How-do-I-get-my-API-key-) and then ask @saikat for access to the test Airtable database. 
+The API uses Airtable to track candidates and nominations. There is a dev airtable user set up on a test database with username airtabledev@brandnewcongress.org and password ~.3XYY+ocnA7Rr1/f38ZKLNsPGo8L'. Use that to login to airtable to check out the test database and see Airtable API docs [here](https://airtable.com/appKkD926OWgpYF0r/api/docs)
 
 ### Maestro
 
