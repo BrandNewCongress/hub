@@ -4,7 +4,9 @@ import nationbuilder from './nationbuilder'
 import log from './log'
 
 log.info('kue-processor is running')
-const queue = kue.createQueue()
+const queue = kue.createQueue({
+  redis: process.env.REDIS_URL
+})
 
 queue.process('createPerson', async (job, done) => {
   try {
