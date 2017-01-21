@@ -45,9 +45,9 @@ class Nationbuilder {
       }
     }
     const response = await this.makeRequest('POST', 'people', requestBody)
+
     if (response && (response.status === 201 || response.status === 409)) {
       const personId = response.data.person.id
-      console.log(personId, utmSource, utmMedium, utmCampaign)
       await this.updatePerson(personId, {
         person: {
           utm_source: utmSource,
@@ -55,6 +55,8 @@ class Nationbuilder {
           utm_campaign: utmCampaign
         }
       })
+    } else {
+      throw new Error(`Nationbuilder create person failed with status: ${response ? response.status : 'No response status received'}`)
     }
     return response
   }

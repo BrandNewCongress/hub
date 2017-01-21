@@ -6,11 +6,23 @@ import wrap from './wrap'
 import mail from './mail'
 import maestro from './maestro'
 import airtable from './airtable'
-import nationbuilder from './nationbuilder'
 import { isEmpty } from './lib'
+import kue from 'kue'
 
+const queue = kue.createQueue(process.env.REDIS_URL)
 const app = express()
 const port = process.env.PORT
+async function saveKueJob(job) {
+  return new Promise((resolve, reject) => {
+    job.save((err) => {
+      if (err) {
+        log.error(err)
+        reject(err)
+      }
+      resolve()
+    })
+  })
+}
 app.enable('trust proxy')
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
@@ -38,7 +50,7 @@ app.post('/nominations', wrap(async (req, res) => {
     return
   }
 
-  await nationbuilder.createPerson({
+  const createJob = queue.create('createPerson', {
     name: body.nominatorName,
     email: body.nominatorEmail,
     phone: body.nominatorPhone,
@@ -46,8 +58,9 @@ app.post('/nominations', wrap(async (req, res) => {
     utmMedium: body.utmMedium,
     utmCampaign: body.utmCampaign
   })
+  await saveKueJob(createJob.attempts(3))
 
-  const nomination = {
+  const nominationJob = queue.create('createNomination', {
     'Nominator Name': body.nominatorName,
     'Nominator Email': body.nominatorEmail,
     'Nominator Phone': body.nominatorPhone,
@@ -79,9 +92,10 @@ app.post('/nominations', wrap(async (req, res) => {
     'UTM Source': body.utmSource,
     'UTM Medium': body.utmMedium,
     'UTM Campaign': body.utmCampaign
-  }
+  })
 
-  await airtable.createNomination(nomination)
+  await saveKueJob(nominationJob.attempts(3).backoff(true))
+
   if (body.redirect) {
     res.redirect(body.redirect)
   } else {
@@ -91,8 +105,7 @@ app.post('/nominations', wrap(async (req, res) => {
 
 app.post('/people', wrap(async (req, res) => {
   const body = req.body
-  console.log(body.utmSource)
-  const response = await nationbuilder.createPerson({
+  const createJob = queue.createJob('createPerson', {
     name: body.fullName,
     email: body.email,
     phone: body.phone,
@@ -103,15 +116,13 @@ app.post('/people', wrap(async (req, res) => {
     utmMedium: body.utmMedium,
     utmCampaign: body.utmCampaign
   })
-  if (response && (response.status === 201 || response.status === 409)) {
-    let signupTemplate = 'bnc-signup'
-    if (body.source === 'justicedemocrats') {
-      signupTemplate = 'jd-signup'
-    }
-    await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', signupTemplate, { name: 'Friend' })
-  } else {
-    log.error(`Error on signup: ${response.status}`)
+  await saveKueJob(createJob)
+  let signupTemplate = 'bnc-signup'
+  if (body.source === 'justicedemocrats') {
+    signupTemplate = 'jd-signup'
   }
+  await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', signupTemplate, { name: 'Friend' })
+
   if (body.redirect) {
     res.redirect(body.redirect)
   } else {
