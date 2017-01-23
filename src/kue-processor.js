@@ -13,7 +13,7 @@ queue.process('createPerson', async (job, done) => {
     await nationbuilder.createPerson(job.data)
   } catch (ex) {
     log.error(ex)
-    return done(ex)
+    return done()
   }
   return done()
 })
@@ -25,7 +25,7 @@ queue.process('createNomination', async (job, done) => {
     })
   } catch (ex) {
     log.error(ex)
-    return done(ex)
+    return done()
   }
   return done()
 })
