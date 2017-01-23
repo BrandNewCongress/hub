@@ -146,6 +146,28 @@ app.post('/people', wrap(async (req, res) => {
   }
 }))
 
+app.post('/volunteers', wrap(async (req, res) => {
+  const body = req.body
+  const volunteerJob = queue.createJob('createVolunteer', {
+    name: body.volunteerName,
+    email: body.volunteerEmail,
+    phone: body.volunteerPhone,
+    address: {
+      city: body.volunteerCity,
+      state: body.volunteerState,
+      zip: body.volunteerZip
+    },
+    congressionalDistrict: body.volunteerDistrict,
+    facebook: body.volunteerFacebook,
+    twitter: body.volunteerTwitter,
+    linkedIn: body.volunteerLinkedIn,
+    profile: body.volunteerProfile,
+    tags: body.volunteerSkills
+  })
+  await saveKueJob(volunteerJob)
+  res.sendStatus(200)
+}))
+
 app.get('/people/count', wrap(async (req, res) => {
   let response = null
   response = await axios.get(`https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`, { headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, validateStatus: () => true })
