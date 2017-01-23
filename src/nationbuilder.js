@@ -78,36 +78,30 @@ class Nationbuilder {
       federal_district: formatDistrictCode(congressionalDistrict)
     }
     const response = await this.makeRequest('POST', 'people', { person: requestBody })
-    if (response && response.status === 409) {
+    if (response && (response.status === 409 || response.status === 201)) {
       const personId = response.data.person.id
       const personProfile = response.data.person.note
       if (tags) {
         await this.addTagsToPerson(personId, tags)
       }
-      const updateResponse = await this.updatePerson(personId, {
+      const newRequest = {
         person: {
-          note: `${personProfile}; ${profile}`,
-          ...requestBody,
           ...utmParameters
         }
-      })
+      }
+      if (profile) {
+        newRequest.person.note = `${personProfile}; ${profile}`
+      }
+      if (response.status === 409) {
+        newRequest.person = {
+          ...newRequest.person,
+          ...requestBody
+        }
+      }
+      const updateResponse = await this.updatePerson(personId, newRequest)
+      return updateResponse
+    }
 
-      return updateResponse
-    }
-    if (response && response.status === 201) {
-      const personId = response.data.person.id
-      const personProfile = response.data.person.note
-      if (tags) {
-        await this.addTagsToPerson(personId, tags)
-      }
-      const updateResponse = await this.updatePerson(personId, {
-        person: {
-          note: `${personProfile}; ${profile}`,
-          ...utmParameters
-        }
-      })
-      return updateResponse
-    }
     throw new Error(`Nationbuilder create person failed with status: ${response ? response.status : 'No response status received'}`)
   }
 
