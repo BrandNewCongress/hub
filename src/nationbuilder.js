@@ -76,7 +76,7 @@ class Nationbuilder {
         }
       }
       if (profile) {
-        newRequest.person.note = `${personProfile}; ${profile}`
+        newRequest.person.note = personProfile ? `${personProfile}; ${profile}` : profile
       }
       if (response.status === 409) {
         newRequest.person = {
