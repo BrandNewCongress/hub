@@ -148,24 +148,27 @@ app.post('/people', wrap(async (req, res) => {
 
 app.post('/volunteers', wrap(async (req, res) => {
   const body = req.body
-  const volunteerJob = queue.createJob('createVolunteer', {
+  const volunteerJob = queue.createJob('createPerson', {
     name: body.volunteerName,
     email: body.volunteerEmail,
     phone: body.volunteerPhone,
     address: {
+      address1: body.volunteerAddress,
       city: body.volunteerCity,
       state: body.volunteerState,
       zip: body.volunteerZip
     },
-    congressionalDistrict: body.volunteerDistrict,
     facebook: body.volunteerFacebook,
     twitter: body.volunteerTwitter,
-    linkedIn: body.volunteerLinkedIn,
     profile: body.volunteerProfile,
     tags: body.volunteerSkills
   })
   await saveKueJob(volunteerJob)
-  res.sendStatus(200)
+  if (body.redirect) {
+    res.redirect(body.redirect)
+  } else {
+    res.sendStatus(200)
+  }
 }))
 
 app.get('/people/count', wrap(async (req, res) => {

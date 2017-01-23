@@ -1,7 +1,7 @@
 import axios from 'axios'
 import log from './log'
 import url from 'url'
-import { formatLink, formatDistrictCode } from './lib'
+import { formatLink } from './lib'
 
 class Nationbuilder {
   async makeRequest(method, path, body) {
@@ -19,11 +19,6 @@ class Nationbuilder {
     return response
   }
 
-  async createVolunteer(personInfo) {
-    const person = await this.createPerson(personInfo)
-
-  }
-
   async createPerson({
     name,
     profile,
@@ -32,8 +27,6 @@ class Nationbuilder {
     address,
     facebook,
     twitter,
-    linkedIn,
-    congressionalDistrict,
     utmSource,
     utmMedium,
     utmCampaign,
@@ -51,14 +44,9 @@ class Nationbuilder {
     }
     const facebookURL = formatLink(facebook)
     const twitterURL = formatLink(twitter)
-    const linkedInURL = formatLink(linkedIn)
     let twitterName = null
-    let linkedInID = null
     if (twitterURL) {
       twitterName = url.parse(twitterURL).pathname.split('/')[1]
-    }
-    if (linkedInURL) {
-      linkedInID = url.parse(linkedInURL).pathname.split('/')[2]
     }
     const utmParameters = {
       utm_source: utmSource,
@@ -70,12 +58,10 @@ class Nationbuilder {
       phone,
       facebook_profile_url: facebookURL,
       twitter_login: twitterName,
-      linkedin_id: linkedInID,
       first_name: firstName,
       last_name: lastName,
       email1: email,
-      mailing_address: address,
-      federal_district: formatDistrictCode(congressionalDistrict)
+      mailing_address: address
     }
     const response = await this.makeRequest('POST', 'people', { person: requestBody })
     if (response && (response.status === 409 || response.status === 201)) {
