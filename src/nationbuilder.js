@@ -81,6 +81,7 @@ class Nationbuilder {
           ...newRequest.person,
           ...requestBody
         }
+        delete newRequest.person.email1
       }
       const updateResponse = await this.updatePerson(personId, newRequest)
       return updateResponse
