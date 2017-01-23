@@ -148,15 +148,25 @@ app.post('/people', wrap(async (req, res) => {
 
 app.post('/volunteers', wrap(async (req, res) => {
   const body = req.body
+  const addressLines = body.volunteerAddress ? body.volunteerAddress.split('\n') : []
+  const address = {
+    city: body.volunteerCity,
+    state: body.volunteerState,
+    zip: body.volunteerZip
+  }
+  let counter = 1
+  addressLines.forEach((line) => {
+    if (counter > 3) {
+      return
+    }
+    address[`address${counter}`] = line
+  })
   const volunteerJob = queue.createJob('createPerson', {
     name: body.volunteerName,
     email: body.volunteerEmail,
     phone: body.volunteerPhone,
     address: {
-      address1: body.volunteerAddress,
-      city: body.volunteerCity,
-      state: body.volunteerState,
-      zip: body.volunteerZip
+      ...address
     },
     facebook: body.volunteerFacebook,
     twitter: body.volunteerTwitter,
