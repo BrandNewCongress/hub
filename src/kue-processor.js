@@ -18,16 +18,6 @@ queue.process('createPerson', async (job, done) => {
   return done()
 })
 
-queue.process('createVolunteer', async (job, done) => {
-  try {
-    await nationbuilder.createVolunteer(job.data)
-  } catch (ex) {
-    log.error(ex)
-    return done(ex)
-  }
-  return done()
-})
-
 queue.process('createNomination', async (job, done) => {
   try {
     await airtable.createNomination(job.data, (progress) => {
