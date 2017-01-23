@@ -28,13 +28,18 @@ class Mail {
       wordwrap: 130
     })
 
-    return this.sendEmail({
-      from: DefaultSender,
-      to,
-      subject,
-      html: renderedTemplateHTML,
-      text: renderedTemplateText
-    })
+    try {
+      return this.sendEmail({
+        from: DefaultSender,
+        to,
+        subject,
+        html: renderedTemplateHTML,
+        text: renderedTemplateText
+      })
+    } catch (ex) {
+      log.error(ex)
+      return null
+    }
   }
 }
 
