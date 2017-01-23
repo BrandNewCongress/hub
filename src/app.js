@@ -160,6 +160,7 @@ app.post('/volunteers', wrap(async (req, res) => {
       return
     }
     address[`address${counter}`] = line
+    counter = counter + 1
   })
   const volunteerJob = queue.createJob('createPerson', {
     name: body.volunteerName,
