@@ -169,8 +169,7 @@ app.post('/volunteers', wrap(async (req, res) => {
     address: {
       ...address
     },
-    facebook: body.volunteerFacebook,
-    twitter: body.volunteerTwitter,
+    linkedIn: body.volunteerLinkedIn,
     profile: body.volunteerProfile,
     tags: body.volunteerSkills
   })

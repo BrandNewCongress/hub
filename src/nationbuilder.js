@@ -27,6 +27,7 @@ class Nationbuilder {
     address,
     facebook,
     twitter,
+    linkedIn,
     utmSource,
     utmMedium,
     utmCampaign,
@@ -48,11 +49,6 @@ class Nationbuilder {
     if (twitterURL) {
       twitterName = url.parse(twitterURL).pathname.split('/')[1]
     }
-    const utmParameters = {
-      utm_source: utmSource,
-      utm_medium: utmMedium,
-      utm_campaign: utmCampaign
-    }
 
     const requestBody = {
       phone,
@@ -61,7 +57,11 @@ class Nationbuilder {
       first_name: firstName,
       last_name: lastName,
       email1: email,
-      mailing_address: address
+      mailing_address: address,
+      linkedin: formatLink(linkedIn),
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      utm_campaign: utmCampaign
     }
     const response = await this.makeRequest('POST', 'people', { person: requestBody })
     if (response && (response.status === 409 || response.status === 201)) {
@@ -71,9 +71,7 @@ class Nationbuilder {
         await this.addTagsToPerson(personId, tags)
       }
       const newRequest = {
-        person: {
-          ...utmParameters
-        }
+        person: { }
       }
       if (profile) {
         newRequest.person.note = personProfile ? `${personProfile}; ${profile}` : profile
