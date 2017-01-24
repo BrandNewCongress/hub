@@ -21,7 +21,7 @@ if (isClient()) {
     enableRollbar = true
     rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN)
     const options = {
-      exitOnUncaughtException: true
+      exitOnUncaughtException: false
     }
     rollbar.handleUncaughtExceptions(process.env.ROLLBAR_ACCESS_TOKEN, options)
   }
