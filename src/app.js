@@ -119,32 +119,41 @@ app.post('/nominations', wrap(async (req, res) => {
   }
 }))
 
-app.post('/people', wrap(async (req, res) => {
-  const body = req.body
-  const createJob = queue.createJob('createPerson', {
-    name: body.fullName,
-    email: body.email,
-    phone: body.phone,
-    address: {
-      zip: body.zip
-    },
-    utmSource: body.utmSource,
-    utmMedium: body.utmMedium,
-    utmCampaign: body.utmCampaign
-  })
-  await saveKueJob(createJob.attempts(3))
-  let signupTemplate = 'bnc-signup'
-  if (body.source === 'justicedemocrats') {
-    signupTemplate = 'jd-signup'
-  }
-  await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', signupTemplate, { name: 'Friend' })
+app.post('/people', async (req, res) => {
+  try {
+    const body = req.body
+    const createJob = queue.createJob('createPerson', {
+      name: body.fullName,
+      email: body.email,
+      phone: body.phone,
+      address: {
+        zip: body.zip
+      },
+      utmSource: body.utmSource,
+      utmMedium: body.utmMedium,
+      utmCampaign: body.utmCampaign
+    })
+    await saveKueJob(createJob.attempts(3))
+    let signupTemplate = 'bnc-signup'
+    if (body.source === 'justicedemocrats') {
+      signupTemplate = 'jd-signup'
+    }
+    await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', signupTemplate, { name: 'Friend' })
 
-  if (body.redirect) {
-    res.redirect(body.redirect)
-  } else {
-    res.sendStatus(200)
+    if (body.redirect) {
+      res.redirect(body.redirect)
+    } else {
+      res.sendStatus(200)
+    }
+  } catch (ex) {
+    log.error(ex)
+    if (req.body.redirect) {
+      res.redirect(req.body.redirect)
+    } else {
+      res.sendStatus(200)
+    }
   }
-}))
+})
 
 app.post('/volunteers', wrap(async (req, res) => {
   const body = req.body
