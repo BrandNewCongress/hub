@@ -36,14 +36,18 @@ if (isClient()) {
   const existingErrorLogger = logInstance.error
   logInstance.error = (err) => {
     existingErrorLogger(err.stack ? err.stack : err)
-    if (enableRollbar) {
-      if (typeof err === 'object') {
-        rollbar.handleError(err)
-      } else if (typeof err === 'string') {
-        rollbar.reportMessage(err)
-      } else {
-        rollbar.reportMessage('Got backend error with no error message')
+    try {
+      if (enableRollbar) {
+        if (typeof err === 'object') {
+          rollbar.handleError(err)
+        } else if (typeof err === 'string') {
+          rollbar.reportMessage(err)
+        } else {
+          rollbar.reportMessage('Got backend error with no error message')
+        }
       }
+    } catch (ex) {
+      rollbar.reportMessage('Error converting message to rollbar.')
     }
   }
 }
