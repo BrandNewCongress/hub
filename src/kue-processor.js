@@ -10,7 +10,6 @@ const queue = kue.createQueue({
 
 queue.process('createPerson', async (job, done) => {
   try {
-    console.log('Creating person...')
     await nationbuilder.createPerson(job.data)
   } catch (ex) {
     log.error(ex)
@@ -21,7 +20,6 @@ queue.process('createPerson', async (job, done) => {
 
 queue.process('createNomination', async (job, done) => {
   try {
-    console.log('Processing nomination...')
     await airtable.createNomination(job.data, (progress) => {
       job.progress(progress, 100)
     })
