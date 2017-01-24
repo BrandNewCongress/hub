@@ -33,7 +33,7 @@ async function saveKueJob(job) {
     job.save((err) => {
       if (err) {
         log.error(err)
-        reject(err)
+        resolve()
       }
       resolve()
     })
