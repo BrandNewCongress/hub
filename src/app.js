@@ -29,7 +29,7 @@ const app = express()
 const port = process.env.PORT
 async function saveKueJob(job) {
   return new Promise((resolve, reject) => {
-    job.save((err) => {
+    job.removeOnComplete(true).save((err) => {
       if (err) {
         log.error(err)
         reject(err)
