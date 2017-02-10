@@ -172,6 +172,38 @@ app.post('/people', async (req, res) => {
   }
 })
 
+app.get('/person/:id', async (req, res) => {
+  try {
+    const id = req.params.id
+    log.info(id)
+    airtable.base('People').find(id, (err, test) => {
+      if (err) console.error(err)
+      res.json(test._rawJson)
+    })
+  } catch (ex) {
+    res.status(400).json(err)
+  }
+})
+
+app.put('/person/:id', async (req, res) => {
+  try {
+    const {
+      emails, phones, facebook, linkedin, twitter, name, city,
+      politicalParty, stateId, districtId, profile, otherLinks
+    } = req.body
+
+    await saveKueJob(queue.createJob('editPerson', {
+      emails, phones, facebook, linkedin, twitter, name, city,
+      politicalParty, stateId, districtId, profile, otherLinks
+    }).attempts(3))
+
+    res.sendStatus(200)
+  } catch (ex) {
+    log.error(ex)
+    res.status(400).json(ex)
+  }
+})
+
 app.post('/volunteers', async (req, res) => {
   try {
     const body = req.body
