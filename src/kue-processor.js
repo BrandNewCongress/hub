@@ -29,3 +29,14 @@ queue.process('createNomination', async (job, done) => {
   }
   return done()
 })
+
+queue.process('editPerson', async (job, done) => {
+  try {
+    const {personId, data} = job
+    const updated = await airtable.createOrUpdatePerson(personId, data)
+  } catch (ex) {
+    log.error(ex)
+    return done()
+  }
+  return done()
+}
