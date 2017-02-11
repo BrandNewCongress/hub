@@ -431,4 +431,3 @@ class BNCAirtable {
 
 const BNCAirtableSingleton = new BNCAirtable()
 export default BNCAirtableSingleton
-
