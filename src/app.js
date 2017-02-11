@@ -175,10 +175,9 @@ app.post('/people', async (req, res) => {
 app.get('/person/:id', async (req, res) => {
   try {
     const id = req.params.id
-    log.info(id)
-    airtable.base('People').find(id, (err, test) => {
+    airtable.base('People').find(id, (err, p) => {
       if (err) console.error(err)
-      res.json(test._rawJson)
+      return res.json(p._rawJson)
     })
   } catch (ex) {
     res.status(400).json(err)
@@ -189,12 +188,16 @@ app.put('/person/:id', async (req, res) => {
   try {
     const {
       emails, phones, facebook, linkedin, twitter, name, city,
-      politicalParty, stateId, districtId, profile, otherLinks
+      politicalParty, stateId, districtId, profile, otherLinks,
+      evaluations, nominations, gender, addresses, religion, occupations,
+      potentialVolunteer,
     } = req.body
 
     await saveKueJob(queue.createJob('editPerson', {
       emails, phones, facebook, linkedin, twitter, name, city,
-      politicalParty, stateId, districtId, profile, otherLinks
+      politicalParty, stateId, districtId, profile, otherLinks,
+      evaluations, nominations, gender, addresses, religion, occupations,
+      potentialVolunteer,
     }).attempts(3))
 
     res.sendStatus(200)
