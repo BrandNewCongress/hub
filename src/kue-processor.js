@@ -39,4 +39,4 @@ queue.process('editPerson', async (job, done) => {
     return done()
   }
   return done()
-}
+})
