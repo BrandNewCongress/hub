@@ -194,13 +194,16 @@ app.put('/person/:id', async (req, res) => {
     } = req.body
 
     await saveKueJob(queue.createJob('editPerson', {
-      emails, phones, facebook, linkedin, twitter, name, city,
-      politicalParty, stateId, districtId, profile, otherLinks,
-      evaluations, nominations, gender, addresses, religion, occupations,
-      potentialVolunteer,
+      personId: req.params.id,
+      data: {
+        emails, phones, facebook, linkedin, twitter, name, city,
+        politicalParty, stateId, districtId, profile, otherLinks,
+        evaluations, nominations, gender, addresses, religion, occupations,
+        potentialVolunteer,
+      }
     }).attempts(3))
 
-    res.sendStatus(200)
+    res.json(req.body)
   } catch (ex) {
     log.error(ex)
     res.status(400).json(ex)
