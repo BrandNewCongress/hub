@@ -176,7 +176,7 @@ app.get('/person/:id', async (req, res) => {
   try {
     const id = req.params.id
     airtable.base('People').find(id, (err, p) => {
-      if (err) console.error(err)
+      if (err) return res.status(400).json(err)
       return res.json(p._rawJson)
     })
   } catch (ex) {
@@ -193,6 +193,7 @@ app.put('/person/:id', async (req, res) => {
       potentialVolunteer,
     } = req.body
 
+
     await saveKueJob(queue.createJob('editPerson', {
       personId: req.params.id,
       data: {
@@ -201,7 +202,7 @@ app.put('/person/:id', async (req, res) => {
         evaluations, nominations, gender, addresses, religion, occupations,
         potentialVolunteer,
       }
-    }).attempts(3))
+    }).attempts(1))
 
     res.json(req.body)
   } catch (ex) {
