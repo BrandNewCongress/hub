@@ -61,6 +61,18 @@ class BNCAirtable {
     return result[0]
   }
 
+  async ensureRelated(val, fieldName, relatedFieldName, person, personField) {
+    let record = await this.findOne('Phone Numbers', `{${relatedFieldName}} = "${this.escapeString(val)}"`)
+    if (!record) {
+      record = await this.create('Phone Numbers', {
+        'Phone Number': number,
+        [personField || 'Person']: [person.id]
+      })
+    }
+    return record.id
+  }
+
+
   async update(table, id, fields) {
     return new Promise((resolve, reject) => {
       this.base(table)
@@ -87,6 +99,10 @@ class BNCAirtable {
     })
   }
 
+  /*
+   * This function will not overwrite existing fields
+   * Should be used to create a person or add new fields
+   */
   async createOrUpdatePerson(personId, {
     emails,
     phones,
@@ -205,6 +221,50 @@ class BNCAirtable {
     }
 
     return person
+  }
+
+  async updatePerson (personId, fields) {
+    const person = await this.findById('People', personId)
+    if (!person) {
+      throw new Error(`Person ${personId} not found`)
+    }
+
+    const simpleFields = {
+      facebook: 'Facebook',
+      linkedin: 'LinkedIn',
+      twitter: 'Twitter',
+      profile: 'Profile',
+      otherLinks: 'Other Links',
+      gender: 'Gender',
+      race: 'Race',
+      politicalParty: 'Political Party',
+      religion: 'Religion',
+      occupations: 'Occupations',
+      potentialVolunteer: 'Potential Volunteer'
+    }
+
+    const update = {}
+
+    for (let f in fields) {
+      if (simpleFields[f])
+        update[simpleFields[f]] = fields[f]
+    }
+
+    if (fields.emails) {
+      const promises = fields.emails.map(e =>
+        this.ensureRelated(e, 'Emails', 'Email', person))
+
+      update.Emails = await Promise.all(promises)
+    }
+
+    if (fields.phones)
+      update['Phone Numbers'] = await Promise.all(fields.phones.map(e =>
+        this.ensureRelated(e, 'Phone Numbers', 'Phone Number', person)))
+    if (fields.evaluations)
+      update.Evaluations = await Promise.all(fields.evaluations.map(e =>
+        this.ensureRelated(e, 'Nominee Evaluations', 'Score', person, 'Nominee')))
+
+    return await this.update('People', person.id, update)
   }
 
   escapeString(str) {
