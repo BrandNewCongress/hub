@@ -61,12 +61,25 @@ class BNCAirtable {
     return result[0]
   }
 
-  ensureRelated(val, fieldName, relatedFieldName, person, personField) {
+  createRelated(val, foreignTable, person, personField) {
     return new Promise((resolve, reject) => {
-      this.findOne(fieldName, `{${relatedFieldName}} = "${this.escapeString(val)}"`)
+      console.log(foreignTable)
+      const record = Object.assign(val, {
+        [personField || 'Person']: [person.id]
+      })
+      console.log(record)
+      this.create(foreignTable, record)
+      .then(resolve)
+      .catch(_ => console.log(_))
+    })
+  }
+
+  ensureRelated(val, foreignTable, relatedFieldName, person, personField) {
+    return new Promise((resolve, reject) => {
+      this.findOne(foreignTable, `{${relatedFieldName}} = "${this.escapeString(val)}"`)
       .then(record => {
         if (record) return resolve(record)
-        this.create(fieldName, {
+        this.create(foreignTable, {
           [relatedFieldName]: val,
           [personField || 'Person']: [person.id]
         })
@@ -246,7 +259,12 @@ class BNCAirtable {
       politicalParty: 'Political Party',
       religion: 'Religion',
       occupations: 'Occupations',
-      potentialVolunteer: 'Potential Volunteer'
+      potentialVolunteer: 'Potential Volunteer',
+      evaluator: 'Evaluator',
+      districtScore: 'District Score',
+      moveOn: 'Move To Next Round',
+      score: 'Score',
+      round: 'Round'
     }
 
     const update = {}
@@ -269,6 +287,23 @@ class BNCAirtable {
 
       update['Phone Numbers'] = (await Promise.all(promises)).map(ph => ph.id)
     }
+
+    if (fields.evaluations) {
+      const promises = fields.evaluations.map(raw => {
+        const correct = {}
+        for (let f in raw) {
+          console.log(f)
+          correct[simpleFields[f]] = raw[f]
+        }
+
+        return this.createRelated(correct, 'Nominee Evaluations', person, 'Nominee')
+      })
+
+      update['Evaluations'] = (await Promise.all(promises)).map(e => e.id)
+    }
+
+    console.log(update)
+    return await this.update('People', person.id, update)
   }
 
   escapeString(str) {
@@ -490,6 +525,30 @@ class BNCAirtable {
     progressFunc(100)
     log.info(`Finished creating nomination for ${nomination.Name}`)
     return createdNomination
+  }
+
+  getPersonWithEvaluations (personId, fn) {
+    this.base('People').find(personId, (err, p) => {
+      if (err) return res.status(400).json(err)
+      const result = p._rawJson.fields
+
+      if (result.Evaluations) {
+        Promise.all(
+          result.Evaluations
+          .map(id => new Promise((resolve, reject) =>
+            this.base('Nominee Evaluations').find(id, (err, p) => err ? reject(err) : resolve(p))
+          ))
+        ).then(records => {
+          result.Evaluations = records.map(r => r._rawJson.fields)
+          return fn(null, result)
+        }).catch(err => {
+          console.log(err)
+          return fn(err)
+        })
+      } else {
+        fn(null, result)
+      }
+    })
   }
 }
 
