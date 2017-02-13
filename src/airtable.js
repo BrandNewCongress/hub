@@ -15,6 +15,8 @@ import {
   formatSourceTeamName
 } from './lib'
 
+import schemas from './schemas'
+
 class BNCAirtable {
   constructor() {
     this.base = new Airtable({
@@ -260,7 +262,6 @@ class BNCAirtable {
       religion: 'Religion',
       occupations: 'Occupations',
       potentialVolunteer: 'Potential Volunteer',
-      evaluator: 'Evaluator',
       districtScore: 'District Score',
       moveOn: 'Move To Next Round',
       score: 'Score',
@@ -292,11 +293,11 @@ class BNCAirtable {
       const promises = fields.evaluations.map(raw => {
         const correct = {}
         for (let f in raw) {
-          console.log(f)
-          correct[simpleFields[f]] = raw[f]
+          if (simpleFields[f] && raw[f])
+            correct[simpleFields[f]] = raw[f]
         }
 
-        return this.createRelated(correct, 'Nominee Evaluations', person, 'Nominee')
+        return this.createRelated(schemas['Nominee Evaluations'].cast(correct), 'Nominee Evaluations', person, 'Nominee')
       })
 
       update['Evaluations'] = (await Promise.all(promises)).map(e => e.id)
@@ -529,7 +530,7 @@ class BNCAirtable {
 
   getPersonWithEvaluations (personId, fn) {
     this.base('People').find(personId, (err, p) => {
-      if (err) return res.status(400).json(err)
+      if (err) return fn(err)
       const result = p._rawJson.fields
 
       if (result.Evaluations) {
