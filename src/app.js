@@ -173,15 +173,12 @@ app.post('/people', async (req, res) => {
 })
 
 app.get('/person/:id', async (req, res) => {
-  try {
-    const id = req.params.id
-    airtable.base('People').find(id, (err, p) => {
-      if (err) return res.status(400).json(err)
-      return res.json(p._rawJson)
-    })
-  } catch (ex) {
-    res.status(400).json(err)
-  }
+  airtable.getPersonWithEvaluations(req.params.id, (err, person) => {
+    if (err)
+      return res.status(400).json(err)
+
+    return res.json(person)
+  })
 })
 
 app.put('/person/:id', async (req, res) => {
