@@ -173,9 +173,10 @@ app.post('/people', async (req, res) => {
 })
 
 app.get('/person/:id', async (req, res) => {
-  airtable.getPersonWithEvaluations(req.params.id, (err, person) => {
-    if (err)
+  airtable.getPersonWithRelations(req.params.id, (err, person) => {
+    if (err) {
       return res.status(400).json(err)
+    }
 
     return res.json(person)
   })

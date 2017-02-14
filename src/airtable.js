@@ -63,16 +63,24 @@ class BNCAirtable {
     return result[0]
   }
 
+  async delete (table, id) {
+    return new Promise((resolve, reject) =>
+      this.base(table).destroy(id, (err, result) =>
+        err ? reject(err) : resolve(result)
+      )
+    )
+  }
+
   createRelated(val, foreignTable, person, personField) {
     return new Promise((resolve, reject) => {
-      console.log(foreignTable)
       const record = Object.assign(val, {
         [personField || 'Person']: [person.id]
       })
+      console.log(foreignTable)
       console.log(record)
       this.create(foreignTable, record)
       .then(resolve)
-      .catch(_ => console.log(_))
+      .catch(reject)
     })
   }
 
@@ -92,6 +100,13 @@ class BNCAirtable {
     })
   }
 
+  getState (abbrev) {
+    return new Promise((resolve, reject) => {
+      this.findOne('States', `{Abbreviation} = "${abbrev}"`)
+      .then(resolve)
+      .catch(reject)
+    })
+  }
 
   async update(table, id, fields) {
     return new Promise((resolve, reject) => {
@@ -265,7 +280,9 @@ class BNCAirtable {
       districtScore: 'District Score',
       moveOn: 'Move To Next Round',
       score: 'Score',
-      round: 'Round'
+      round: 'Round',
+      state: 'State',
+      city: 'City'
     }
 
     const update = {}
@@ -303,7 +320,29 @@ class BNCAirtable {
       update['Evaluations'] = (await Promise.all(promises)).map(e => e.id)
     }
 
-    console.log(update)
+    if (fields.addresses) {
+      const promises = fields.addresses.map(raw => {
+        const correct = {}
+        for (let f in raw) {
+          if (simpleFields[f] && raw[f])
+            correct[simpleFields[f]] = raw[f]
+        }
+
+        return new Promise((resolve, reject) =>
+          this.getState(correct.State)
+          .then(({id}) => {
+            correct.State = [id]
+            this.createRelated(schemas['Addresses'].cast(correct), 'Addresses', person, 'Person')
+            .then(resolve)
+            .catch(reject)
+          })
+          .catch(reject)
+        )
+      })
+
+      update['Addresses'] = (await Promise.all(promises)).map(a => a.id)
+    }
+
     return await this.update('People', person.id, update)
   }
 
@@ -315,8 +354,8 @@ class BNCAirtable {
   }
 
   async matchPerson({
-    emails, phones, facebook, linkedin, twitter, name, city, stateId, districtId
-  }) {
+      emails, phones, facebook, linkedin, twitter, name, city, stateId, districtId
+    }) {
     if (!isEmpty(emails)) {
       let matchString = ''
       emails.forEach((email) => {
@@ -528,22 +567,33 @@ class BNCAirtable {
     return createdNomination
   }
 
-  getPersonWithEvaluations (personId, fn) {
+  getPersonWithRelations (personId, fn) {
     this.base('People').find(personId, (err, p) => {
       if (err) return fn(err)
       const result = p._rawJson.fields
 
       if (result.Evaluations) {
         Promise.all(
-          result.Evaluations
+          (result.Evaluations || [])
           .map(id => new Promise((resolve, reject) =>
             this.base('Nominee Evaluations').find(id, (err, p) => err ? reject(err) : resolve(p))
+          )).concat((result.Addresses || [])
+          .map(id => new Promise((resolve, reject) =>
+            this.base('Addresses').find(id, (err, a) => err ? reject(err) : resolve(a))
           ))
-        ).then(records => {
-          result.Evaluations = records.map(r => r._rawJson.fields)
+        )).then(records => {
+          result.Evaluations = []
+          result.Addresses = []
+          records.forEach(r => {
+            if (r._rawJson.fields.Nominee) result.Evaluations.push(r._rawJson.fields)
+            else result.Addresses.push({
+              City: r._rawJson.fields.City,
+              State: (result['Address (plain text)'].replace(/"/g, '') || '').split(',')[1]
+            })
+          })
+          console.log(result.Addresses)
           return fn(null, result)
         }).catch(err => {
-          console.log(err)
           return fn(err)
         })
       } else {
