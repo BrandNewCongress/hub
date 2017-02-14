@@ -7,4 +7,12 @@ const Evaluation = yup.object().shape({
   Nominee: yup.array().of(yup.string())
 })
 
-export default {'Nominee Evaluations': Evaluation}
+const Address = yup.object().shape({
+  State: yup.array().of(yup.string()),
+  City: yup.string()
+})
+
+export default {
+  'Nominee Evaluations': Evaluation,
+  'Addresses': Address
+}
