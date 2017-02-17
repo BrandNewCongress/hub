@@ -15,8 +15,6 @@ import {
   formatSourceTeamName
 } from './lib'
 
-import schemas from './schemas'
-
 class BNCAirtable {
   constructor() {
     this.base = new Airtable({

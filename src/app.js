@@ -8,6 +8,7 @@ import airtable from './airtable'
 import { isEmpty } from './lib'
 import kue from 'kue'
 import basicAuth from 'basic-auth'
+import apps from './apps'
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -50,6 +51,11 @@ app.use((req, res, next) => {
   return next()
 })
 app.use('/queue', auth('admin', process.env.QUEUE_PASSWORD), kue.app)
+
+apps.forEach(a => {
+  app.use(a)
+})
+
 app.get('/teams', async (req, res) => {
   try {
     let teams = await airtable.findAll('Teams')
@@ -172,42 +178,42 @@ app.post('/people', async (req, res) => {
   }
 })
 
-app.get('/person/:id', async (req, res) => {
-  airtable.getPersonWithRelations(req.params.id, (err, person) => {
-    if (err) {
-      return res.status(400).json(err)
-    }
-
-    return res.json(person)
-  })
-})
-
-app.put('/person/:id', async (req, res) => {
-  try {
-    const {
-      emails, phones, facebook, linkedin, twitter, name, city,
-      politicalParty, stateId, districtId, profile, otherLinks,
-      evaluations, nominations, gender, addresses, religion, occupations,
-      potentialVolunteer,
-    } = req.body
-
-
-    await saveKueJob(queue.createJob('editPerson', {
-      personId: req.params.id,
-      data: {
-        emails, phones, facebook, linkedin, twitter, name, city,
-        politicalParty, stateId, districtId, profile, otherLinks,
-        evaluations, nominations, gender, addresses, religion, occupations,
-        potentialVolunteer,
-      }
-    }).attempts(1))
-
-    res.json(req.body)
-  } catch (ex) {
-    log.error(ex)
-    res.status(400).json(ex)
-  }
-})
+// app.get('/person/:id', async (req, res) => {
+//   airtable.getPersonWithRelations(req.params.id, (err, person) => {
+//     if (err) {
+//       return res.status(400).json(err)
+//     }
+//
+//     return res.json(person)
+//   })
+// })
+//
+// app.put('/person/:id', async (req, res) => {
+//   try {
+//     const {
+//       emails, phones, facebook, linkedin, twitter, name, city,
+//       politicalParty, stateId, districtId, profile, otherLinks,
+//       evaluations, nominations, gender, addresses, religion, occupations,
+//       potentialVolunteer,
+//     } = req.body
+//
+//
+//     await saveKueJob(queue.createJob('editPerson', {
+//       personId: req.params.id,
+//       data: {
+//         emails, phones, facebook, linkedin, twitter, name, city,
+//         politicalParty, stateId, districtId, profile, otherLinks,
+//         evaluations, nominations, gender, addresses, religion, occupations,
+//         potentialVolunteer,
+//       }
+//     }).attempts(1))
+//
+//     res.json(req.body)
+//   } catch (ex) {
+//     log.error(ex)
+//     res.status(400).json(ex)
+//   }
+// })
 
 app.post('/volunteers', async (req, res) => {
   try {
