@@ -16,10 +16,63 @@ const model = name => {
   const ltl = linkedTableLookup[name]
   const schema = schemas[name]
 
-  const exports = {
+  /*
+   * Used internally in exports.update and exports.create
+   * Will automatically create records in linked fields
+   * and replace them with the created id if necessary
+   */
+  const editCore = (data, cb) => {
+    const copy = Object.assign({}, data)
+    const promises = []
+
+    const linkedFields = Object.keys(copy).filter(field =>
+      schema.fields[field] &&
+      schema.fields[field]._type == 'array' &&
+      schema.fields[field]._subType._type == 'string'
+    )
+
+    linkedFields.forEach(field => {
+      const linkedModel = model(ltl[field])
+
+      copy[field].forEach((member, idx) => {
+        // If it's a value that needs to be posted to the db
+        // and set in copy as an id
+        if (typeof member == 'object') {
+          promises.push(new Promise((resolve, reject) => {
+            const resolver = (err, obj) => {
+              if (err) return reject(err)
+              copy[field][idx] = obj.id
+              return resolve(true)
+            }
+
+            if (member.id) linkedModel.update(member.id, member, resolver)
+            else linkedModel.create(member, resolver)
+          }))
+        }
+      })
+    })
+
+    Promise.all(promises)
+    .then(_ => {
+      // now all linked fields should be ids
+      const transformed = keyMap(schema.cast(copy), toAirCase)
+      cb(null, transformed)
+    })
+    .catch(cb)
+  }
+
+  /*
+   * Set of functions returned by `model`
+   * Access common `bn, ltl, and schema` through closures
+   */
+  return {
     findById: id => {
       const toPopulate = []
 
+      /*
+       * Exec defined here so it and `populate` share an enclosed
+       * array
+       */
       const exec = cb => {
         bn.find(id, (err, raw) => {
           if (err) return cb(err)
@@ -50,7 +103,6 @@ const model = name => {
                 })
               }))
             })
-
           })
 
           Promise.all(promises)
@@ -59,7 +111,12 @@ const model = name => {
         })
       }
 
+      /*
+       * A query returns the ability to call to populate some fields
+       * and to immediately execute the query
+       */
       return ({
+        // populate returns exec for chaining
         populate: fields => {
           fields.split(' ').forEach(f => toPopulate.push(f))
           return {exec}
@@ -68,18 +125,22 @@ const model = name => {
       })
     },
 
-    create: (data, cb) => {
-      const transformed = keyMap(schema.cast(data), toAirCase)
-      bn.create(transformed, cb)
-    },
+    create: (data) => new Promise((resolve, reject) => {
+      editCore(data, (err, transformed) => {
+        if (err) return cb(err)
+        return bn.create(transformed, (err, _) =>
+          err ? reject(err) : resolve(_))
+      })
+    }),
 
-    update: (id, data, cb) => {
-      const transformed = keyMap(schema.cast(data), toAirCase)
-      bn.update(id, transformed, cb)
-    }
+    update: (id, data) => new Promise((resolve, reject) => {
+      editCore(data, (err, transformed) => {
+        if (err) return cb(err)
+        return bn.update(id, transformed, (err, _) =>
+          err ? reject(err) : resolve(_))
+      })
+    })
   }
-
-  return exports
 }
 
 export default {model}
