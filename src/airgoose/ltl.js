@@ -1,7 +1,11 @@
 export default {
   Person: {
-    evaluations: 'Nominee Evaluations',
-    addresses: 'Addresses',
-    nominations: 'Nominations'
+    evaluations: 'Evaluation',
+    addresses: 'Address',
+    nominations: 'Nomination'
+  },
+  Evaluation: {
+    nominee: 'Person',
+    evaluator: 'Person'
   }
 }

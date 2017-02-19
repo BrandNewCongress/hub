@@ -1,3 +1,5 @@
 export default {
-  Person: 'People'
+  Person: 'People',
+  Evaluation: 'Nominee Evaluations',
+  Nomination: 'Nominations'
 }

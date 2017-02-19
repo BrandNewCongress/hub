@@ -1,15 +1,17 @@
 import yup from 'yup'
 
 const Evaluation = yup.object().shape({
-  Score: yup.number().required().positive().integer(),
-  Round: yup.string().matches(/R[0-9]/),
-  'Move To Next Round': yup.string(),
-  Nominee: yup.array().of(yup.string())
+  score: yup.number().positive().integer(),
+  round: yup.string().matches(/R[0-9]/),
+  districtScore: yup.string(),
+  moveToNextRound: yup.string(),
+  nominee: yup.array().of(yup.string()),
+  evaluator: yup.array().of(yup.string())
 })
 
 const Address = yup.object().shape({
-  State: yup.array().of(yup.string()),
-  City: yup.string()
+  state: yup.array().of(yup.string()),
+  city: yup.string()
 })
 
 const Person = yup.object().shape({
@@ -30,8 +32,17 @@ const Person = yup.object().shape({
   'nominations': yup.array().of(yup.string())
 })
 
+const wrapModel = model => ({
+  fields: model.fields,
+  cast: obj => model.cast(Object.keys(obj)
+    .filter(key => model.fields[key])
+    .reduce((acc, key) =>
+      Object.assign({[key]: obj[key]}, acc)
+    , {})),
+})
+
 export default {
-  Person,
-  Evaluation,
-  Address,
+  Person: wrapModel(Person),
+  Evaluation: wrapModel(Evaluation),
+  Address: wrapModel(Address),
 }
