@@ -39,34 +39,33 @@ const model = name => {
         // and set in copy as an id
         if (typeof member == 'object') {
           promises.push(new Promise((resolve, reject) => {
-            const resolver = (err, obj) => {
-              if (err) return reject(err)
+            const onsuccess = (obj) => {
               copy[field][idx] = obj.id
               return resolve(true)
             }
 
-            if (member.id) linkedModel.update(member.id, member, resolver)
-            else linkedModel.create(member, resolver)
+            const onerr = (err) => reject(err)
+
+            if (member.id) linkedModel.update(member.id, member).then(onsuccess).catch(onerr)
+            else linkedModel.create(member).then(onsuccess).catch(onerr)
           }))
         }
       })
     })
 
+    // Not resolving for root model TODO TODO TODO
     Promise.all(promises)
     .then(_ => {
       // now all linked fields should be ids
       const transformed = keyMap(schema.cast(copy), toAirCase)
       cb(null, transformed)
     })
-    .catch(cb)
+    .catch(err => {
+      cb(err)
+    })
   }
 
-  /*
-   * Set of functions returned by `model`
-   * Access common `bn, ltl, and schema` through closures
-   */
-  return {
-    findById: id => {
+  const findCore = method => {
       const toPopulate = []
 
       /*
@@ -74,13 +73,13 @@ const model = name => {
        * array
        */
       const exec = cb => {
-        bn.find(id, (err, raw) => {
+        method((err, raw) => {
           if (err) return cb(err)
           if (!raw) return cb(new Error('Not found'))
 
           const result = deAirtable(raw)
 
-          if (toPopulate.length == 0) return cb(result)
+          if (toPopulate.length == 0) return cb(null, result)
 
           const promises = []
           const toAssign = {}
@@ -91,7 +90,7 @@ const model = name => {
             const linkedIds = (result[attr] || [])
             linkedIds.forEach(linkedId => {
               promises.push(new Promise((resolve, reject) => {
-                base(ltl[attr]).find(linkedId, (err, linkedObj) => {
+                base(tableLookup[ltl[attr]]).find(linkedId, (err, linkedObj) => {
                   if (err) return reject(err)
 
                   if (linkedObj) {
@@ -123,21 +122,46 @@ const model = name => {
         },
         exec
       })
+    }
+
+  /*
+   * Set of functions returned by `model`
+   * Access common `bn, ltl, and schema` through closures
+   */
+  return {
+    findById: id => {
+      return findCore((fn) => bn.find(id, fn))
+    },
+
+    findOne: query => {
+      const formula = `AND(${Object.keys(query).map(k =>
+        `{${toAirCase(k)}} = "${query[k]}"`
+      ).join(',')})`
+
+      return findCore((fn) => bn
+        .select({
+          filterByFormula: formula,
+          maxRecords: 1
+        })
+        .eachPage(
+          (results) => fn(null, results[0]),
+          (err) => fn(err)
+        ))
     },
 
     create: (data) => new Promise((resolve, reject) => {
       editCore(data, (err, transformed) => {
-        if (err) return cb(err)
+        if (err) return reject(err)
         return bn.create(transformed, (err, _) =>
-          err ? reject(err) : resolve(_))
+          err ? reject(err) : resolve(deAirtable(_)))
       })
     }),
 
     update: (id, data) => new Promise((resolve, reject) => {
       editCore(data, (err, transformed) => {
-        if (err) return cb(err)
+        if (err) return reject(err)
         return bn.update(id, transformed, (err, _) =>
-          err ? reject(err) : resolve(_))
+          err ? reject(err) : resolve(deAirtable(_)))
       })
     })
   }
