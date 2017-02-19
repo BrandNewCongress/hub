@@ -178,43 +178,6 @@ app.post('/people', async (req, res) => {
   }
 })
 
-// app.get('/person/:id', async (req, res) => {
-//   airtable.getPersonWithRelations(req.params.id, (err, person) => {
-//     if (err) {
-//       return res.status(400).json(err)
-//     }
-//
-//     return res.json(person)
-//   })
-// })
-//
-// app.put('/person/:id', async (req, res) => {
-//   try {
-//     const {
-//       emails, phones, facebook, linkedin, twitter, name, city,
-//       politicalParty, stateId, districtId, profile, otherLinks,
-//       evaluations, nominations, gender, addresses, religion, occupations,
-//       potentialVolunteer,
-//     } = req.body
-//
-//
-//     await saveKueJob(queue.createJob('editPerson', {
-//       personId: req.params.id,
-//       data: {
-//         emails, phones, facebook, linkedin, twitter, name, city,
-//         politicalParty, stateId, districtId, profile, otherLinks,
-//         evaluations, nominations, gender, addresses, religion, occupations,
-//         potentialVolunteer,
-//       }
-//     }).attempts(1))
-//
-//     res.json(req.body)
-//   } catch (ex) {
-//     log.error(ex)
-//     res.status(400).json(ex)
-//   }
-// })
-
 app.post('/volunteers', async (req, res) => {
   try {
     const body = req.body
