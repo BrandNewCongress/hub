@@ -61,51 +61,6 @@ class BNCAirtable {
     return result[0]
   }
 
-  async delete (table, id) {
-    return new Promise((resolve, reject) =>
-      this.base(table).destroy(id, (err, result) =>
-        err ? reject(err) : resolve(result)
-      )
-    )
-  }
-
-  createRelated(val, foreignTable, person, personField) {
-    return new Promise((resolve, reject) => {
-      const record = Object.assign(val, {
-        [personField || 'Person']: [person.id]
-      })
-      console.log(foreignTable)
-      console.log(record)
-      this.create(foreignTable, record)
-      .then(resolve)
-      .catch(reject)
-    })
-  }
-
-  ensureRelated(val, foreignTable, relatedFieldName, person, personField) {
-    return new Promise((resolve, reject) => {
-      this.findOne(foreignTable, `{${relatedFieldName}} = "${this.escapeString(val)}"`)
-      .then(record => {
-        if (record) return resolve(record)
-        this.create(foreignTable, {
-          [relatedFieldName]: val,
-          [personField || 'Person']: [person.id]
-        })
-        .then(resolve)
-        .catch(reject)
-      })
-      .catch(reject)
-    })
-  }
-
-  getState (abbrev) {
-    return new Promise((resolve, reject) => {
-      this.findOne('States', `{Abbreviation} = "${abbrev}"`)
-      .then(resolve)
-      .catch(reject)
-    })
-  }
-
   async update(table, id, fields) {
     return new Promise((resolve, reject) => {
       this.base(table)
@@ -132,25 +87,20 @@ class BNCAirtable {
     })
   }
 
-  /*
-   * This function will not overwrite existing fields
-   * Should be used to create a person or add new fields
-   */
   async createOrUpdatePerson(personId, {
-      emails,
-      phones,
-      facebook,
-      linkedin,
-      twitter,
-      name,
-      city,
-      politicalParty,
-      stateId,
-      districtId,
-      profile,
-      otherLinks
-    })
-    {
+    emails,
+    phones,
+    facebook,
+    linkedin,
+    twitter,
+    name,
+    city,
+    politicalParty,
+    stateId,
+    districtId,
+    profile,
+    otherLinks
+  }) {
     let person = null
     if (personId) {
       person = await this.findById('People', personId)
@@ -257,93 +207,6 @@ class BNCAirtable {
     return person
   }
 
-  async updatePerson (personId, fields) {
-    const person = await this.findById('People', personId)
-    if (!person) {
-      throw new Error(`Person ${personId} not found`)
-    }
-
-    const simpleFields = {
-      facebook: 'Facebook',
-      linkedin: 'LinkedIn',
-      twitter: 'Twitter',
-      profile: 'Profile',
-      otherLinks: 'Other Links',
-      gender: 'Gender',
-      race: 'Race',
-      politicalParty: 'Political Party',
-      religion: 'Religion',
-      occupations: 'Occupations',
-      potentialVolunteer: 'Potential Volunteer',
-      districtScore: 'District Score',
-      moveOn: 'Move To Next Round',
-      score: 'Score',
-      round: 'Round',
-      state: 'State',
-      city: 'City'
-    }
-
-    const update = {}
-
-    for (let f in fields) {
-      if (simpleFields[f])
-        update[simpleFields[f]] = fields[f]
-    }
-
-    if (fields.emails) {
-      const promises = fields.emails.map(e =>
-        this.ensureRelated(e, 'Emails', 'Email', person))
-
-      update.Emails = (await Promise.all(promises)).map(em => em.id)
-    }
-
-    if (fields.phones) {
-      const promises = fields.phones.map(e =>
-        this.ensureRelated(e, 'Phone Numbers', 'Phone Number', person))
-
-      update['Phone Numbers'] = (await Promise.all(promises)).map(ph => ph.id)
-    }
-
-    if (fields.evaluations) {
-      const promises = fields.evaluations.map(raw => {
-        const correct = {}
-        for (let f in raw) {
-          if (simpleFields[f] && raw[f])
-            correct[simpleFields[f]] = raw[f]
-        }
-
-        return this.createRelated(schemas['Nominee Evaluations'].cast(correct), 'Nominee Evaluations', person, 'Nominee')
-      })
-
-      update['Evaluations'] = (await Promise.all(promises)).map(e => e.id)
-    }
-
-    if (fields.addresses) {
-      const promises = fields.addresses.map(raw => {
-        const correct = {}
-        for (let f in raw) {
-          if (simpleFields[f] && raw[f])
-            correct[simpleFields[f]] = raw[f]
-        }
-
-        return new Promise((resolve, reject) =>
-          this.getState(correct.State)
-          .then(({id}) => {
-            correct.State = [id]
-            this.createRelated(schemas['Addresses'].cast(correct), 'Addresses', person, 'Person')
-            .then(resolve)
-            .catch(reject)
-          })
-          .catch(reject)
-        )
-      })
-
-      update['Addresses'] = (await Promise.all(promises)).map(a => a.id)
-    }
-
-    return await this.update('People', person.id, update)
-  }
-
   escapeString(str) {
     if (str) {
       return str.replace(/"/g, '\\"')
@@ -352,8 +215,8 @@ class BNCAirtable {
   }
 
   async matchPerson({
-      emails, phones, facebook, linkedin, twitter, name, city, stateId, districtId
-    }) {
+    emails, phones, facebook, linkedin, twitter, name, city, stateId, districtId
+  }) {
     if (!isEmpty(emails)) {
       let matchString = ''
       emails.forEach((email) => {
@@ -564,42 +427,8 @@ class BNCAirtable {
     log.info(`Finished creating nomination for ${nomination.Name}`)
     return createdNomination
   }
-
-  getPersonWithRelations (personId, fn) {
-    this.base('People').find(personId, (err, p) => {
-      if (err) return fn(err)
-      const result = p._rawJson.fields
-
-      if (result.Evaluations) {
-        Promise.all(
-          (result.Evaluations || [])
-          .map(id => new Promise((resolve, reject) =>
-            this.base('Nominee Evaluations').find(id, (err, p) => err ? reject(err) : resolve(p))
-          )).concat((result.Addresses || [])
-          .map(id => new Promise((resolve, reject) =>
-            this.base('Addresses').find(id, (err, a) => err ? reject(err) : resolve(a))
-          ))
-        )).then(records => {
-          result.Evaluations = []
-          result.Addresses = []
-          records.forEach(r => {
-            if (r._rawJson.fields.Nominee) result.Evaluations.push(r._rawJson.fields)
-            else result.Addresses.push({
-              City: r._rawJson.fields.City,
-              State: (result['Address (plain text)'].replace(/"/g, '') || '').split(',')[1]
-            })
-          })
-          console.log(result.Addresses)
-          return fn(null, result)
-        }).catch(err => {
-          return fn(err)
-        })
-      } else {
-        fn(null, result)
-      }
-    })
-  }
 }
 
 const BNCAirtableSingleton = new BNCAirtable()
 export default BNCAirtableSingleton
+
