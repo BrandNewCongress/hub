@@ -38,6 +38,5 @@ const wrapModel = model => ({
 
 export default {
   Person: wrapModel(Person),
-  Evaluation: wrapModel(Evaluation),
-  Address: wrapModel(Address),
+  Evaluation: wrapModel(Evaluation)
 }
