@@ -23,8 +23,12 @@ const Person = yup.object().shape({
   'occupations': yup.string(),
   'potentialVolunteer': yup.boolean(),
   'evaluations': yup.array().of(yup.string()),
-  'addresses': yup.array().of(yup.string()),
   'nominations': yup.array().of(yup.string())
+})
+
+const District = yup.object().shape({
+  // just needs to exist, district should not be editing by the api though so
+  // no need for validation
 })
 
 const wrapModel = model => ({
@@ -38,5 +42,6 @@ const wrapModel = model => ({
 
 export default {
   Person: wrapModel(Person),
-  Evaluation: wrapModel(Evaluation)
+  Evaluation: wrapModel(Evaluation),
+  District: wrapModel(District)
 }

@@ -20,7 +20,7 @@ evaluator.get('/person/byname', (req, res) => {
 evaluator.get('/person/:id', (req, res) => {
   Person
   .findById(req.params.id)
-  .populate('evaluations nominations')
+  .populate('evaluations nominations district')
   .exec((err, person) => {
     if (err) return res.status(404).json(err)
     return res.json(person)
@@ -33,7 +33,7 @@ evaluator.put('/person/:id', (req, res) => {
   .then(_ => {
     Person
     .findById(req.params.id)
-    .populate('evaluations nominations')
+    .populate('evaluations nominations district')
     .exec((err, person) => {
       if (err) return res.status(404).json(err)
       return res.json(person)

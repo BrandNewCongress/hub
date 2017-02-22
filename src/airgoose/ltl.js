@@ -1,11 +1,12 @@
 export default {
   Person: {
     evaluations: 'Evaluation',
-    addresses: 'Address',
-    nominations: 'Nomination'
+    nominations: 'Nomination',
+    district: 'District'
   },
   Evaluation: {
     nominee: 'Person',
     evaluator: 'Person'
-  }
+  },
+  District: {}
 }
