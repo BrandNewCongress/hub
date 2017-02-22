@@ -9,11 +9,6 @@ const Evaluation = yup.object().shape({
   evaluator: yup.array().of(yup.string())
 })
 
-const Address = yup.object().shape({
-  state: yup.array().of(yup.string()),
-  city: yup.string()
-})
-
 const Person = yup.object().shape({
   'emailAddresses': yup.array().of(yup.string().transform((value) => value.replace(/\s/g, '')).email()),
   'phoneNumbers': yup.array().of(yup.string()),
@@ -22,7 +17,7 @@ const Person = yup.object().shape({
   'profile': yup.string(),
   'otherLinks': yup.string(),
   'gender': yup.string(),
-  'race': yup.string(),
+  'race': yup.array().of(yup.string()).transform((_, val) => [val]),
   'politicalParty': yup.string(),
   'religion': yup.string(),
   'occupations': yup.string(),
