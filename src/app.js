@@ -195,6 +195,10 @@ app.post('/volunteers', async (req, res) => {
       address[`address${counter}`] = line
       counter = counter + 1
     })
+    const tags = body.volunteerSkills
+    if (body.volunteerAvailability) {
+      tags.push(body.volunteerAvailability)
+    }
     const volunteerJob = queue.createJob('createPerson', {
       name: body.volunteerName,
       email: body.volunteerEmail,
@@ -204,7 +208,7 @@ app.post('/volunteers', async (req, res) => {
       },
       linkedIn: body.volunteerLinkedIn,
       profile: body.volunteerProfile,
-      tags: body.volunteerSkills
+      tags
     })
     await saveKueJob(volunteerJob)
     if (body.redirect) {
