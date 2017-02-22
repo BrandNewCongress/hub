@@ -1,9 +1,12 @@
 import express from 'express'
 import airgoose from '../airgoose'
+import cors from 'cors'
 
 const Person = airgoose.model('Person')
 
 const evaluator = express()
+
+evaluator.use(cors())
 
 evaluator.get('/person/byname', (req, res) => {
   Person
