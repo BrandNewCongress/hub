@@ -28,7 +28,8 @@ const model = name => {
     const linkedFields = Object.keys(copy).filter(field =>
       schema.fields[field] &&
       schema.fields[field]._type == 'array' &&
-      schema.fields[field]._subType._type == 'string'
+      schema.fields[field]._subType._type == 'string' &&
+      field !== 'race'
     )
 
     linkedFields.forEach(field => {
