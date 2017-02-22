@@ -8,6 +8,7 @@ import airtable from './airtable'
 import { isEmpty } from './lib'
 import kue from 'kue'
 import basicAuth from 'basic-auth'
+import apps from './apps'
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -50,6 +51,11 @@ app.use((req, res, next) => {
   return next()
 })
 app.use('/queue', auth('admin', process.env.QUEUE_PASSWORD), kue.app)
+
+apps.forEach(a => {
+  app.use(a)
+})
+
 app.get('/teams', async (req, res) => {
   try {
     let teams = await airtable.findAll('Teams')
