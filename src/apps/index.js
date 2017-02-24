@@ -27,6 +27,15 @@ evaluator.get('/person/:id', (req, res) => {
   })
 })
 
+evaluator.get('/assignments', (req, res) => {
+  Person
+  .find({assignment: req.query.name})
+  .exec((err, people) => {
+    if (err) return res.status(404).json(err)
+    return res.json(people)
+  })
+})
+
 evaluator.put('/person/:id', (req, res) => {
   Person
   .update(req.params.id, req.body)

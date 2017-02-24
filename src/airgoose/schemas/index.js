@@ -10,20 +10,25 @@ const Evaluation = yup.object().shape({
 })
 
 const Person = yup.object().shape({
-  'emailAddresses': yup.array().of(yup.string().transform((value) => value.replace(/\s/g, '')).email()),
-  'phoneNumbers': yup.array().of(yup.string()),
+  /* SIMPLE FIELDS */
   'facebook': yup.string().url(),
   'linkedIn': yup.string().url(),
+  'twitter': yup.string().url(),
   'profile': yup.string(),
   'otherLinks': yup.string(),
+  /* ENUMS */
   'gender': yup.string(),
-  'race': yup.array().of(yup.string()).transform((_, val) => [val]),
   'politicalParty': yup.string(),
   'religion': yup.string(),
-  'occupations': yup.string(),
-  'potentialVolunteer': yup.boolean(),
+  /* MULTI-SELECT ENUMS */
+  'potentialVolunteer': yup.array().of(yup.string()),
+  'race': yup.array().of(yup.string()),
+  'occupations': yup.array().of(yup.string()),
+  /* LINKED FIELDS */
   'evaluations': yup.array().of(yup.string()),
-  'nominations': yup.array().of(yup.string())
+  'nominations': yup.array().of(yup.string()),
+  'emailAddresses': yup.array().of(yup.string().transform((value) => value.replace(/\s/g, '')).email()),
+  'phoneNumbers': yup.array().of(yup.string()),
 })
 
 const District = yup.object().shape({
@@ -37,7 +42,7 @@ const wrapModel = model => ({
     .filter(key => model.fields[key])
     .reduce((acc, key) =>
       Object.assign({[key]: obj[key]}, acc)
-    , {})),
+    , {}))
 })
 
 export default {

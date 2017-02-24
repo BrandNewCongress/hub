@@ -29,7 +29,7 @@ const model = name => {
       schema.fields[field] &&
       schema.fields[field]._type == 'array' &&
       schema.fields[field]._subType._type == 'string' &&
-      field !== 'race'
+      !(['race', 'occupations', 'potentialVolunteer'].includes(field))
     )
 
     linkedFields.forEach(field => {
@@ -78,7 +78,9 @@ const model = name => {
           if (err) return cb(err)
           if (!raw) return cb(new Error('Not found'))
 
-          const result = deAirtable(raw)
+          const result = Array.isArray(raw)
+            ? raw.map(r => deAirtable(r))
+            : deAirtable(raw)
 
           if (toPopulate.length == 0) return cb(null, result)
 
@@ -144,9 +146,25 @@ const model = name => {
           filterByFormula: formula,
           maxRecords: 1
         })
-        .eachPage(
-          (results) => fn(null, results[0]),
-          (err) => fn(err)
+        .firstPage((err, results) => err
+          ? fn(err)
+          : fn(null, results[0])
+        ))
+    },
+
+    find: query => {
+      const formula = `AND(${Object.keys(query).map(k =>
+        `{${toAirCase(k)}} = "${query[k]}"`
+      ).join(',')})`
+
+      return findCore((fn) => bn
+        .select({
+          filterByFormula: formula,
+          maxRecords: 10
+        })
+        .firstPage((err, results) => err
+          ? fn(err)
+          : fn(null, results)
         ))
     },
 
