@@ -46,7 +46,7 @@ evaluator.get('/assignments/done', (req, res) => {
     assignment: req.query.name,
     formula: 'COUNT(EVALUATIONS) > 0'
   })
-  .sort({lastEvaluated: 1})
+  .sort({evaluationDate: 1})
   .exec((err, people) => {
     if (err) return res.status(404).json(err)
     return res.json(people)
