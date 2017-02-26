@@ -6,6 +6,7 @@ import keyMap from './key-map'
 import linkedTableLookup from './ltl'
 import tableLookup from './tl'
 import deAirtable from './de-airtable'
+import airQuery from './air-query'
 
 const base = new Airtable({
   apiKey: process.env.AIRTABLE_API_KEY
@@ -68,13 +69,14 @@ const model = name => {
 
   const findCore = method => {
       const toPopulate = []
+      const sortObjects = []
 
       /*
-       * Exec defined here so it and `populate` share an enclosed
+       * Exec defined here so it, `populate`, and `sortObjects`, share an enclosed
        * array
        */
       const exec = cb => {
-        method((err, raw) => {
+        method(sortObjects, (err, raw) => {
           if (err) return cb(err)
           if (!raw) return cb(new Error('Not found'))
 
@@ -123,6 +125,13 @@ const model = name => {
           fields.split(' ').forEach(f => toPopulate.push(f))
           return {exec}
         },
+        sort: fields => {
+          Object.keys(fields).forEach(f => sortObjects.push({
+            field: toAirCase(f),
+            direction: fields[f] == 1 ? 'asc' : 'desc'
+          }))
+          return {exec}
+        },
         exec
       })
     }
@@ -136,37 +145,27 @@ const model = name => {
       return findCore((fn) => bn.find(id, fn))
     },
 
-    findOne: query => {
-      const formula = `AND(${Object.keys(query).map(k =>
-        `{${toAirCase(k)}} = "${query[k]}"`
-      ).join(',')})`
+    findOne: query => findCore((sort, fn) => bn
+      .select({
+        sort,
+        filterByFormula: airQuery(query),
+        maxRecords: 1
+      })
+      .firstPage((err, results) => err
+        ? fn(err)
+        : fn(null, results[0])
+      )),
 
-      return findCore((fn) => bn
-        .select({
-          filterByFormula: formula,
-          maxRecords: 1
-        })
-        .firstPage((err, results) => err
-          ? fn(err)
-          : fn(null, results[0])
-        ))
-    },
-
-    find: query => {
-      const formula = `AND(${Object.keys(query).map(k =>
-        `{${toAirCase(k)}} = "${query[k]}"`
-      ).join(',')})`
-
-      return findCore((fn) => bn
-        .select({
-          filterByFormula: formula,
-          maxRecords: 10
-        })
-        .firstPage((err, results) => err
-          ? fn(err)
-          : fn(null, results)
-        ))
-    },
+    find: query => findCore((sort, fn) => bn
+      .select({
+        sort,
+        filterByFormula: airQuery(query),
+        maxRecords: 10
+      })
+      .firstPage((err, results) => err
+        ? fn(err)
+        : fn(null, results)
+      )),
 
     create: (data) => new Promise((resolve, reject) => {
       editCore(data, (err, transformed) => {
