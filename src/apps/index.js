@@ -27,9 +27,26 @@ evaluator.get('/person/:id', (req, res) => {
   })
 })
 
-evaluator.get('/assignments', (req, res) => {
+evaluator.get('/assignments/todo', (req, res) => {
   Person
-  .find({assignment: req.query.name})
+  .find({
+    assignment: req.query.name,
+    formula: 'COUNT(EVALUATIONS) = 0'
+  })
+  .sort({dateCreated: -1})
+  .exec((err, people) => {
+    if (err) return res.status(404).json(err)
+    return res.json(people)
+  })
+})
+
+evaluator.get('/assignments/done', (req, res) => {
+  Person
+  .find({
+    assignment: req.query.name,
+    formula: 'COUNT(EVALUATIONS) > 0'
+  })
+  .sort({lastEvaluated: 1})
   .exec((err, people) => {
     if (err) return res.status(404).json(err)
     return res.json(people)
