@@ -91,6 +91,9 @@ app.post('/nominations', async (req, res) => {
     })
     await saveKueJob(createJob.attempts(3))
 
+    let signupTemplate = 'bnc-nomination'
+    await mail.sendEmailTemplate(body.nominatorEmail, 'Thanks for nominating a candidate.', signupTemplate, { name: 'Friend' })
+
     const nominationJob = queue.create('createNomination', {
       'Nominator Name': body.nominatorName,
       'Nominator Email': body.nominatorEmail,
