@@ -1,36 +1,9 @@
 import yup from 'yup'
 
-const Evaluation = yup.object().shape({
-  score: yup.number().positive().integer(),
-  round: yup.string().matches(/R[0-9]/),
-  districtScore: yup.string(),
-  moveToNextRound: yup.string(),
-  nominee: yup.array().of(yup.string()),
-  evaluator: yup.array().of(yup.string())
-})
-
-const Person = yup.object().shape({
-  /* SIMPLE FIELDS */
-  facebook: yup.string().url(),
-  linkedIn: yup.string().url(),
-  twitter: yup.string().url(),
-  profile: yup.string(),
-  otherLinks: yup.string(),
-  assignment: yup.string(),
-  /* ENUMS */
-  gender: yup.string(),
-  politicalParty: yup.string(),
-  religion: yup.string(),
-  /* MULTI-SELECT ENUMS */
-  potentialVolunteer: yup.array().of(yup.string()),
-  race: yup.array().of(yup.string()),
-  occupations: yup.array().of(yup.string()),
-  /* LINKED FIELDS */
-  evaluations: yup.array().of(yup.string()),
-  nominations: yup.array().of(yup.string()),
-  emailAddresses: yup.array().of(yup.string().transform((value) => value.replace(/\s/g, '')).email()),
-  phoneNumbers: yup.array().of(yup.string()),
-})
+import Evaluation from './evaluation'
+import Nomination from './nomination'
+import Person from './person'
+import Address from './address'
 
 const District = yup.object().shape({
   // just needs to exist, district should not be editing by the api though so
@@ -49,5 +22,7 @@ const wrapModel = model => ({
 export default {
   Person: wrapModel(Person),
   Evaluation: wrapModel(Evaluation),
+  Address: wrapModel(Address),
+  Nomination: wrapModel(Nomination),
   District: wrapModel(District)
 }
