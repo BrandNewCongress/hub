@@ -69,6 +69,7 @@
     "marked": "^0.3.6",
     "minilog": "^3.0.1",
     "moment": "^2.17.1",
+    "monk": "^4.0.0",
     "mustache": "^2.3.0",
     "nodemon": "^1.9.2",
     "normalize-url": "^1.8.0",

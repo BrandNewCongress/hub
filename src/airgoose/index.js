@@ -14,6 +14,10 @@ const model = (name, BASE) => {
     apiKey: process.env.AIRTABLE_API_KEY
   }).base(BASE || process.env.AIRTABLE_BASE)
 
+  if (!tableLookup[name]) {
+    throw new Error(`No entry for ${name}`)
+  }
+
   const bn = base(tableLookup[name])
   const ltl = linkedTableLookup[name]
   const schema = schemas[name]
@@ -192,7 +196,11 @@ const model = (name, BASE) => {
         return bn.update(id, transformed, (err, _) =>
           err ? reject(err) : resolve(deAirtable(_)))
       })
-    })
+    }),
+
+    destroy: (id) => new Promise((resolve, reject) =>
+      bn.destroy(id, (err, _) => err ? reject(err) : resolve(_))
+    )
   }
 }
 
