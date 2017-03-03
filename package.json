@@ -15,9 +15,11 @@
     "postinstall": "if [ \"$NODE_ENV\" = production ] ; then npm run prod-build ; fi",
     "start": "node $OUTPUT_DIR",
     "worker": "node $OUTPUT_DIR/worker.js",
+    "garbage": "node $OUTPUT_DIR/garbage-collection/index.js",
     "predev-start": "npm run clean",
     "dev-start": "nodemon -e js,jsx,md,mustache -w ./src --exec ./dev-tools/babel-run -- ./src",
     "dev-worker": "nodemon -e js -w ./src --exec ./dev-tools/babel-run -- ./src/worker.js",
+    "dev-garbage": "nodemon -e js -w ./src --exec ./dev-tools/babel-run -- ./src/garbage-collection/index.js",
     "kue-dashboard": "kue-dashboard -p 3050 -r $REDIS_URL",
     "dev": "nf start -w --procfile ./dev-tools/Procfile.dev"
   },
