@@ -7,12 +7,13 @@ import linkedTableLookup from './ltl'
 import tableLookup from './tl'
 import deAirtable from './de-airtable'
 import airQuery from './air-query'
+import cannotEdit from './cannot-edit'
 
-const base = new Airtable({
-  apiKey: process.env.AIRTABLE_API_KEY
-}).base(process.env.AIRTABLE_BASE)
+const model = (name, BASE) => {
+  const base = new Airtable({
+    apiKey: process.env.AIRTABLE_API_KEY
+  }).base(BASE || process.env.AIRTABLE_BASE)
 
-const model = name => {
   const bn = base(tableLookup[name])
   const ltl = linkedTableLookup[name]
   const schema = schemas[name]
@@ -23,15 +24,17 @@ const model = name => {
    * and replace them with the created id if necessary
    */
   const editCore = (data, cb) => {
-    const copy = Object.assign({}, data)
+    const copy = Object.assign({}, data, cannotEdit)
     const promises = []
 
-    const linkedFields = Object.keys(copy).filter(field =>
-      schema.fields[field] &&
-      schema.fields[field]._type == 'array' &&
-      schema.fields[field]._subType._type == 'string' &&
-      !(['race', 'occupations', 'potentialVolunteer'].includes(field))
-    )
+    const linkedFields = ltl
+      ? Object.keys(copy).filter(field =>
+          schema.fields[field] &&
+          schema.fields[field]._type == 'array' &&
+          schema.fields[field]._subType._type == 'string' &&
+          !(['race', 'occupations', 'potentialVolunteer'].includes(field))
+        )
+      : []
 
     linkedFields.forEach(field => {
       const linkedModel = model(ltl[field])
@@ -46,7 +49,12 @@ const model = name => {
               return resolve(true)
             }
 
-            const onerr = (err) => reject(err)
+            const onerr = (err) => {
+              console.log('53')
+              return reject(err)
+            }
+
+            const doCreate = linkedModel.create(member).then(onsuccess).catch(onerr)
 
             if (member.id) linkedModel.update(member.id, member).then(onsuccess).catch(onerr)
             else linkedModel.create(member).then(onsuccess).catch(onerr)
@@ -55,7 +63,6 @@ const model = name => {
       })
     })
 
-    // Not resolving for root model TODO TODO TODO
     Promise.all(promises)
     .then(_ => {
       // now all linked fields should be ids
@@ -71,6 +78,35 @@ const model = name => {
       const toPopulate = []
       const sortObjects = []
 
+      const doPopulate = (obj, fields) => new Promise((resolve, reject) => {
+        const promises = []
+        const toAssign = {}
+
+        fields.forEach(attr => {
+          toAssign[attr] = []
+
+          const linkedIds = (obj[attr] || [])
+          linkedIds.forEach(linkedId => {
+            promises.push(new Promise((resolve, reject) => {
+              base(tableLookup[ltl[attr]]).find(linkedId, (err, linkedObj) => {
+                if (err) return reject(err)
+
+                if (linkedObj) {
+                  const o = deAirtable(linkedObj)
+                  toAssign[attr].push(o)
+                }
+
+                resolve(true)
+              })
+            }))
+          })
+        })
+
+        Promise.all(promises)
+        .then(_ => resolve(Object.assign(obj, toAssign)))
+        .catch(reject)
+      })
+
       /*
        * Exec defined here so it, `populate`, and `sortObjects`, share an enclosed
        * array
@@ -80,38 +116,13 @@ const model = name => {
           if (err) return cb(err)
           if (!raw) return cb(new Error('Not found'))
 
-          const result = Array.isArray(raw)
-            ? raw.map(r => deAirtable(r))
-            : deAirtable(raw)
+          const promise = Array.isArray(raw)
+            ? Promise.all(raw.map(r => doPopulate(deAirtable(r), toPopulate)))
+            : doPopulate(deAirtable(raw), toPopulate)
 
-          if (toPopulate.length == 0) return cb(null, result)
-
-          const promises = []
-          const toAssign = {}
-
-          toPopulate.forEach(attr => {
-            toAssign[attr] = []
-
-            const linkedIds = (result[attr] || [])
-            linkedIds.forEach(linkedId => {
-              promises.push(new Promise((resolve, reject) => {
-                base(tableLookup[ltl[attr]]).find(linkedId, (err, linkedObj) => {
-                  if (err) return reject(err)
-
-                  if (linkedObj) {
-                    const o = deAirtable(linkedObj)
-                    toAssign[attr].push(o)
-                  }
-
-                  resolve(true)
-                })
-              }))
-            })
-          })
-
-          Promise.all(promises)
-          .then(_ => cb(null, Object.assign(result, toAssign)))
-          .catch(err => cb(err))
+          promise
+          .then(final => cb(null, final))
+          .catch(cb)
         })
       }
 
@@ -142,7 +153,7 @@ const model = name => {
    */
   return {
     findById: id => {
-      return findCore((fn) => bn.find(id, fn))
+      return findCore((sort, fn) => bn.find(id, fn))
     },
 
     findOne: query => findCore((sort, fn) => bn
@@ -160,7 +171,7 @@ const model = name => {
       .select({
         sort,
         filterByFormula: airQuery(query),
-        maxRecords: 10
+        maxRecords: 100
       })
       .firstPage((err, results) => err
         ? fn(err)
