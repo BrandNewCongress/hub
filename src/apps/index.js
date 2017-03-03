@@ -31,9 +31,8 @@ evaluator.get('/assignments/todo', (req, res) => {
   Person
   .find({
     assignment: req.query.name,
-    formula: '{Evaluations} = BLANK()'
+    nominationStatus: 'R1 - To Be Evaluated'
   })
-  .sort({dateCreated: -1})
   .exec((err, people) => {
     if (err) return res.status(404).json(err)
     return res.json(people)
@@ -44,9 +43,8 @@ evaluator.get('/assignments/done', (req, res) => {
   Person
   .find({
     assignment: req.query.name,
-    formula: 'NOT({Evaluations} = BLANK())'
+    formula: 'NOT({Nomination Status} = "R1 - To Be Evaluated")'
   })
-  .sort({evaluationDate: 1})
   .exec((err, people) => {
     if (err) return res.status(404).json(err)
     return res.json(people)
