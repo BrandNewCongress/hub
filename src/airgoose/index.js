@@ -142,7 +142,7 @@ const model = name => {
    */
   return {
     findById: id => {
-      return findCore((fn) => bn.find(id, fn))
+      return findCore((sort, fn) => bn.find(id, fn))
     },
 
     findOne: query => findCore((sort, fn) => bn

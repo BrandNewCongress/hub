@@ -31,7 +31,7 @@ evaluator.get('/assignments/todo', (req, res) => {
   Person
   .find({
     assignment: req.query.name,
-    formula: 'COUNT(EVALUATIONS) = 0'
+    formula: '{Evaluations} = BLANK()'
   })
   .sort({dateCreated: -1})
   .exec((err, people) => {
@@ -44,7 +44,7 @@ evaluator.get('/assignments/done', (req, res) => {
   Person
   .find({
     assignment: req.query.name,
-    formula: 'COUNT(EVALUATIONS) > 0'
+    formula: 'NOT({Evaluations} = BLANK())'
   })
   .sort({evaluationDate: 1})
   .exec((err, people) => {
