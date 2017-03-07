@@ -182,6 +182,19 @@ const model = (name, BASE) => {
         : fn(null, results)
       )),
 
+    findAll: query => findCore((sort, fn) => {
+      const cached = []
+
+      bn.select({
+        sort,
+        filterByFormula: airQuery(query)
+      }).eachPage((records, fetchNextPage) => {
+        console.log(`Cached has ${cached.length}`)
+        cached.push(...records)
+        fetchNextPage()
+      }, err => fn(err, cached))
+    }),
+
     create: (data) => new Promise((resolve, reject) => {
       editCore(data, (err, transformed) => {
         if (err) return reject(err)
