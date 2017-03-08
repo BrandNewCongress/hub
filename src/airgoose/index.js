@@ -54,11 +54,8 @@ const model = (name, BASE) => {
             }
 
             const onerr = (err) => {
-              console.log('53')
               return reject(err)
             }
-
-            const doCreate = linkedModel.create(member).then(onsuccess).catch(onerr)
 
             if (member.id) linkedModel.update(member.id, member).then(onsuccess).catch(onerr)
             else linkedModel.create(member).then(onsuccess).catch(onerr)
