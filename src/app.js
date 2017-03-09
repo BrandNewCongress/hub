@@ -63,6 +63,12 @@ app.get('/cons_group/:id/count', async (req, res) => {
   res.send({ count: consGroup.members })
 })
 
+app.get('/forms/:id/count', async (req, res) => {
+  const bsd = new BSD(process.env.BSD_API_URL, process.env.BSD_API_ID, process.env.BSD_API_SECRET)
+  const formCount = await bsd.getFormSignupCount(req.params.id)
+  res.send({ count: formCount })
+})
+
 app.get('/teams', async (req, res) => {
   try {
     let teams = await airtable.findAll('Teams')

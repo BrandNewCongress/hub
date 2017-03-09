@@ -209,6 +209,12 @@ export default class BSD {
     let response = await this.request('/signup/process_signup', params, 'POST')
   }
 
+  async getFormSignupCount(formId) {
+    let response = await this.request('signup/signup_count', {signup_form_id: formId}, 'GET')
+    response = await parseStringPromise(response)
+    return parseInt(response.api.count[0], 10)
+  }
+
   async getForm(formId) {
     let response = await this.request('signup/get_form', {signup_form_id: formId}, 'GET')
 
