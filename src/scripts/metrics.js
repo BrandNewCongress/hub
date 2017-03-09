@@ -5,8 +5,6 @@ const db = monk(process.env.MONGODB_URI || 'localhost:27017/bnc')
 
 const statuses = {}
 
-console.log('hi')
-
 const People = db.get('People')
 People
 .find()
