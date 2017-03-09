@@ -9,6 +9,7 @@ import { isEmpty } from './lib'
 import kue from 'kue'
 import basicAuth from 'basic-auth'
 import apps from './apps'
+import BSD from './bsd'
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -54,6 +55,12 @@ app.use('/queue', auth('admin', process.env.QUEUE_PASSWORD), kue.app)
 
 apps.forEach(a => {
   app.use(a)
+})
+
+app.get('/cons_group/:id/count', async (req, res) => {
+  const bsd = new BSD(process.env.BSD_API_URL, process.env.BSD_API_ID, process.env.BSD_API_SECRET)
+  const consGroup = await bsd.getConstituentGroup(req.params.id)
+  res.send({ count: consGroup.members })
 })
 
 app.get('/teams', async (req, res) => {
