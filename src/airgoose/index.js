@@ -9,7 +9,7 @@ import deAirtable from './de-airtable'
 import airQuery from './air-query'
 import cannotEdit from './cannot-edit'
 
-const model = (name, BASE) => {
+const model = (name, BASE, verbose) => {
   const base = new Airtable({
     apiKey: process.env.AIRTABLE_API_KEY
   }).base(BASE || process.env.AIRTABLE_BASE)
@@ -180,13 +180,21 @@ const model = (name, BASE) => {
       )),
 
     findAll: query => findCore((sort, fn) => {
+      const options = {}
+      if (sort && Object.keys(sort).length > 0)
+        options.sort = sort
+
+      if (query && Object.keys(query).length > 0)
+        options.filterByFormula = airQuery(query)
+
+      if (verbose)
+        console.log(`Finding all with options: ${JSON.stringify(options)}`)
+
       const cached = []
 
-      bn.select({
-        sort,
-        filterByFormula: airQuery(query)
-      }).eachPage((records, fetchNextPage) => {
-        console.log(`Cached has ${cached.length}`)
+      bn.select(options).eachPage((records, fetchNextPage) => {
+        if (verbose) console.log(`Cached has ${cached.length}`)
+
         cached.push(...records)
         fetchNextPage()
       }, err => fn(err, cached))

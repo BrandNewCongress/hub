@@ -3,63 +3,69 @@ import tl from '../airgoose/tl'
 import mongo, {getMetadata, setMetadata} from './mongo'
 import collections from './collections'
 
-const DO = (model) => {
-  console.log(model.name)
+const transform = (json, dateFields) => Object.assign(json, dateFields.reduce((acc, field) =>
+  Object.assign(acc, json[field]
+    ? {[field]: new Date(json[field])}
+    : {}
+  )
+, {}))
+
+const backup = model => new Promise((resolve, reject) => {
+  console.log(`Fetching ${model.name}`)
 
   model.air
-  .findAll({})
+  .findAll()
   .exec((err, docs) => {
-    console.log(`got docs ${docs.length}`)
+    if (err) return reject(err)
+
+    console.log(`Got ${docs.length} records`)
+
     model.mongo.bulkWrite(docs.map(d => ({
       updateOne: {
         filter: {id: d.id},
-        update: {$set: d},
+        update: {$set: transform(d, model.dateFields)},
         upsert: true
       }
     })))
     .then(written => {
       console.log(JSON.stringify(written))
-      console.log(`Wrote ${written.length} records to mongo`)
-
-      // const destroyNext = (idx) => {
-      //   if (idx < written.length) {
-      //     models.People.air.destroy(written[idx].id)
-      //     .then(_ => {
-      //       console.log(`Destroyed ${idx}: ${written[idx].id}`)
-      //       destroyNext(idx + 1)
-      //     })
-      //     .catch(err => {
-      //       console.log(`Could not delete ${JSON.stringify(written[idx])}`)
-      //       console.log(err)
-      //     })
-      //   } else {
-      //     console.log(`Done!`)
-      //     DO()
-      //   }
-      // }
-      //
-      // destroyNext(0)
+      console.log(`Modified ${written.nModified} records`)
+      console.log(`${written.nUpserted} were new`)
+      resolve(written.nModified)
     }).catch(err => {
       console.log('Err!')
       console.log(JSON.stringify(err))
+      reject(err)
     })
   })
-}
+})
 
 const models = {}
 const controllers = {}
-// collections.forEach(c => {
-const touse = collections.filter(c => c != 'People' && c != 'Nominee Evaluations')
-touse.forEach(c => {
-  console.log(c)
+collections.forEach(obj => {
+  const c = Object.keys(obj)[0]
   const singular = Object.entries(tl).filter(([singular, plural]) => plural == c)[0][0]
-  console.log(singular)
 
   models[c] = {
     name: c,
     mongo: mongo[c],
-    air: airgoose.model(singular)
+    air: airgoose.model(singular, undefined, true),
+    dateFields: obj[c]
+  }
+})
+
+const go = async () => {
+  for (let name in models) {
+    try {
+      let results = await backup(models[name])
+    } catch(ex) {
+      console.log(ex)
+      return ex
+    }
   }
 
-  DO(models[c])
-})
+  console.log('Done!')
+  process.exit()
+}
+
+go()
