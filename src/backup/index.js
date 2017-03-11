@@ -1,3 +1,4 @@
+require('babel-polyfill')
 import airgoose from '../airgoose'
 import tl from '../airgoose/tl'
 import mongo, {getMetadata, setMetadata} from './mongo'
@@ -44,7 +45,7 @@ const models = {}
 const controllers = {}
 collections.forEach(obj => {
   const c = Object.keys(obj)[0]
-  const singular = Object.entries(tl).filter(([singular, plural]) => plural == c)[0][0]
+  const singular = Object.keys(tl).filter(singular => tl[singular] == c)[0]
 
   models[c] = {
     name: c,
