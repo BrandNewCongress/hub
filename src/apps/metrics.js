@@ -4,6 +4,7 @@ import cors from 'cors'
 const db = monk(process.env.MONGODB_URI || 'localhost:27017/bnc')
 
 const Evaluations = db.get('Nominee Evaluations')
+const Nominations = db.get('Nominations')
 const People = db.get('People')
 
 const metrics = express()
@@ -25,6 +26,9 @@ const querify = params => {
       $gte: new Date(params.dateRange[0]),
       $lt: addDay(new Date(params.dateRange[1]))
     }
+
+  if (params.source)
+    query.source = params.source
 
   if (params.evaluators)
     query.evaluatorName = {
@@ -50,6 +54,9 @@ metrics.get('/metrics', async (req, res) => {
       }}, {
         fields: ['gender', 'race']
       })
+
+    const nominations = await Nominations
+      .count(req.query.source ? {source: req.query.source} : {})
 
     const days = {}
     const breakdown = { Yes: 0, No: 0, Hold: 0 }
@@ -87,7 +94,8 @@ metrics.get('/metrics', async (req, res) => {
       breakdown,
       gender,
       race,
-      days
+      days,
+      nominations
     })
   } catch (err) {
     console.log(err)
