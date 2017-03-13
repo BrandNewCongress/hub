@@ -40,6 +40,9 @@ async function saveKueJob(job) {
     })
   })
 }
+
+const stripBadPunc = str => str ? str.replace(/[",]/g, '') : str
+
 app.enable('trust proxy')
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
@@ -95,7 +98,7 @@ app.post('/nominations', async (req, res) => {
     }
 
     const createJob = queue.create('createPerson', {
-      name: body.nominatorName,
+      name: stripBadPunc(body.nominatorName),
       email: body.nominatorEmail,
       phone: body.nominatorPhone,
       utmSource: body.utmSource,
@@ -159,7 +162,7 @@ app.post('/people', async (req, res) => {
   try {
     const body = req.body
     const createJob = queue.createJob('createPerson', {
-      name: body.fullName,
+      name: stripBadPunc(body.fullName),
       email: body.email,
       phone: body.phone,
       address: {
@@ -213,7 +216,7 @@ app.post('/volunteers', async (req, res) => {
       tags.push(body.volunteerAvailability)
     }
     const volunteerJob = queue.createJob('createPerson', {
-      name: body.volunteerName,
+      name: stripBadPunc(body.volunteerName),
       email: body.volunteerEmail,
       phone: body.volunteerPhone,
       address: {
