@@ -108,7 +108,7 @@ app.post('/nominations', async (req, res) => {
     await saveKueJob(createJob.attempts(3))
 
     const nominationJob = queue.create('createNomination', {
-      'Nominator Name': body.nominatorName,
+      'Nominator Name': stripBadPunc(body.nominatorName),
       'Nominator Email': body.nominatorEmail,
       'Nominator Phone': body.nominatorPhone,
       Name: body.nomineeName,
