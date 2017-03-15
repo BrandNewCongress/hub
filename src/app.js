@@ -111,7 +111,7 @@ app.post('/nominations', async (req, res) => {
       'Nominator Name': stripBadPunc(body.nominatorName),
       'Nominator Email': body.nominatorEmail,
       'Nominator Phone': body.nominatorPhone,
-      Name: body.nomineeName,
+      Name: stripBadPunc(body.nomineeName),
       Email: body.nomineeEmail,
       Phone: body.nomineePhone,
       City: body.nomineeCity,
