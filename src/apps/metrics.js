@@ -6,6 +6,16 @@ const db = monk(process.env.MONGODB_URI || 'localhost:27017/bnc')
 const Evaluations = db.get('Nominee Evaluations')
 const Nominations = db.get('Nominations')
 const People = db.get('People')
+const Tickets = db.get('Tickets')
+const ContactLogs = db.get('Contact Logs')
+
+const models = {
+  'Nominee Evaluations': Evaluations,
+  'Nominations': Nominations,
+  'People': People,
+  'Tickets': Tickets,
+  'Contact Logs': ContactLogs
+}
 
 const metrics = express()
 metrics.use(cors())
@@ -15,108 +25,104 @@ const addDay = date => {
   return date
 }
 
-const querify = params => {
+const dateFields = {
+  'Nominee Evaluations': 'evaluationDate',
+  'People': 'dateCreated',
+  'Nominations': 'dateSubmitted',
+  'Tickets': 'date'
+}
+
+const querify = (params, model) => {
   const query = {}
 
-  if (params.round)
-    query.round = params.round
-
-  if (params.dateRange)
-    query.evaluationDate = {
-      $gte: new Date(params.dateRange[0]),
-      $lt: addDay(new Date(params.dateRange[1]))
+  Object.keys(params).forEach(p => {
+    if (p == 'dateRange') {
+      query[dateFields[model]] = {
+        $gte: new Date(params.dateRange[0]),
+        $lt: addDay(new Date(params.dateRange[1]))
+      }
+    } else if (p == 'evaluators') {
+      query.evaluatorName = {
+        $in: Array.isArray(params.evaluators)
+          ? params.evaluators
+          : [params.evaluators]
+      }
+    } else {
+      if (params[p])
+        query[p] = params[p]
     }
-
-  if (params.source)
-    query.source = params.source
-
-  if (params.evaluators)
-    query.evaluatorName = {
-      $in: Array.isArray(params.evaluators)
-        ? params.evaluators
-        : [params.evaluators]
-    }
+  })
 
   return query
 }
 
-metrics.get('/metrics', async (req, res) => {
+metrics.get('/metrics/query', async (req, res) => {
   try {
-    const evaluations = await Evaluations
-      .find(querify(req.query), {
-        sort: {evaluationDate: 1},
-        fields: ['id', 'round', 'evaluationDate', 'moveToNextRound']
-      })
+    const { operation, model, attributes, ...query } = req.query
+    const attrs = Array.isArray(attributes)
+      ? attributes
+      : [attributes]
 
-    const nominees = await People
-      .find({evaluations: {
-        $in: evaluations.filter(e => e.moveToNextRound == 'Yes').map(e => e.id)
-      }}, {
-        fields: ['gender', 'race']
-      })
+    const docs = await models[model].find(querify(query), {fields: attrs})
+    if (operation == 'count') {
+      return res.json(docs.length)
+    }
 
-    const nominations = await Nominations
-      .count(req.query.source ? {source: req.query.source} : {})
+    if (operation == 'breakdown') {
+      const data = {}
+      attrs.forEach(attr => {
+        data[attr] = {}
+        docs.forEach(d => {
+          const values = Array.isArray(d[attr])
+            ? d[attr]
+            : [d[attr]]
 
-    const days = {}
-    const breakdown = { Yes: 0, No: 0, Hold: 0 }
-    const gender = {Unknown: 0}
-    const race = {Unknown: 0}
-
-    evaluations.forEach(d => {
-      const day = d.evaluationDate.toDateString()
-      if (!days[day]) days[day] = 0
-      days[day]++
-
-      if (breakdown[d.moveToNextRound] !== undefined) breakdown[d.moveToNextRound]++
-    })
-
-    nominees.forEach(n => {
-      if (n.gender) {
-        if (!gender[n.gender]) gender[n.gender] = 0
-        gender[n.gender]++
-      } else {
-        gender.Unknown++
-      }
-
-      if (n.race) {
-        n.race.forEach(r => {
-          if (!race[r]) race[r] = 0
-          race[r]++
+          values.forEach(v => {
+            if (!data[attr][v]) data[attr][v] = 0
+            data[attr][v]++
+          })
         })
-      } else {
-        race.Unknown++
-      }
-    })
+      })
 
-    return res.json({
-      total: days.length,
-      breakdown,
-      gender,
-      race,
-      days,
-      nominations
-    })
+      return res.json(data)
+    }
   } catch (err) {
-    console.log(err)
-    res.status(500).json(err)
+    return res.status(500).json(err)
   }
 })
 
-metrics.get('/metrics/evaluators', async (req, res) => {
-  try {
-    const evaluations = await Evaluations.find({}, {fields: 'evaluatorName'})
-    const evaluators = new Set()
-    evaluations.forEach(e => {
-      if (e.evaluatorName)
-        e.evaluatorName.forEach(name => evaluators.add(name))
+metrics.get('/metrics/model-options', (req, res) => {
+  console.log(`getting options for model ${req.query.model}`)
+  models[req.query.model].find({}, {limit: 50})
+  .then(docs => {
+    const attributes = new Set()
+    docs.forEach(d => {
+      Object.keys(d).forEach(attr => attributes.add(attr))
     })
-    evaluators.delete(null)
-    res.json([...evaluators])
-  } catch (err) {
-    console.log(err)
-    res.status(500).json(err)
-  }
+    attributes.delete('_id')
+    attributes.delete('id')
+    return res.json([...attributes].sort())
+  })
+  .catch(err => res.status(500).json(err))
+})
+
+metrics.get('/metrics/attribute-options', (req, res) => {
+  console.log(`getting options for model ${req.query.model}'s ${req.query.attribute}`)
+  const attribute = req.query.attribute
+
+  models[req.query.model].find({}, {limit: 50, fields: [attribute]})
+  .then(docs => {
+    const values = new Set()
+    docs.forEach(d => {
+      const local = Array.isArray(d[attr])
+        ? Array.isArray(d[attr])
+        : [d[attr]]
+
+      local.forEach(values.add)
+    })
+
+    res.json([...values])
+  })
 })
 
 export default metrics
