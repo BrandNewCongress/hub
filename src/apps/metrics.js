@@ -31,7 +31,8 @@ const dateFields = {
   'Nominee Evaluations': 'evaluationDate',
   'People': 'dateCreated',
   'Nominations': 'dateSubmitted',
-  'Tickets': 'date'
+  'Tickets': 'date',
+  'Contact Logs': 'dateContacted'
 }
 
 const querify = (params, model) => {
@@ -68,7 +69,7 @@ metrics.get('/metrics/query', async (req, res) => {
 
     const firstDocs = await models[model].find(querify(query, model), {fields: ['id', attribute]})
     if (operation == 'count') {
-      return res.json(docs.length)
+      return res.json(firstDocs.length)
     }
 
     const attr = secondaryAttribute || attribute
