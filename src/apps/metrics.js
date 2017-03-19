@@ -110,7 +110,6 @@ metrics.get('/metrics/query', async (req, res) => {
 })
 
 metrics.get('/metrics/model-options', (req, res) => {
-  console.log(`getting options for model ${req.query.model}`)
   const singular = Object.keys(tl).filter(sing => tl[sing] == req.query.model)[0]
 
   models[req.query.model].find({}, {limit: 50})
@@ -137,7 +136,6 @@ metrics.get('/metrics/model-options', (req, res) => {
 })
 
 metrics.get('/metrics/attribute-options', (req, res) => {
-  console.log(`getting options for model ${req.query.model}'s ${req.query.attribute}`)
   const attribute = req.query.attribute
 
   models[req.query.model].find({}, {limit: 50, fields: [attribute]})
