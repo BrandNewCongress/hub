@@ -3,7 +3,8 @@ export default {
     evaluations: 'Evaluation',
     nominations: 'Nomination',
     district: 'District',
-    addresses: 'Address'
+    addresses: 'Address',
+    contactLogs: 'Contact'
   },
   Evaluation: {
     nominee: 'Person',
@@ -11,5 +12,10 @@ export default {
   },
   District: {},
   Addresses: {},
-  Nomination: {}
+  Nomination: {
+    person: 'Person'
+  },
+  Contact: {
+    person: 'Person'
+  }
 }
