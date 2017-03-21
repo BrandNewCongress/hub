@@ -44,15 +44,12 @@ const querify = (params, model) => {
         $gte: new Date(params.dateRange[0]),
         $lt: addDay(new Date(params.dateRange[1]))
       }
-    } else if (p == 'evaluators') {
-      query.evaluatorName = {
-        $in: Array.isArray(params.evaluators)
-          ? params.evaluators
-          : [params.evaluators]
-      }
     } else {
       if (params[p])
-        query[p] = params[p]
+        query[p] = {$in: Array.isArray(params[p])
+          ? params[p]
+          : [params[p]]
+        }
     }
   })
 
@@ -142,14 +139,14 @@ metrics.get('/metrics/attribute-options', (req, res) => {
   .then(docs => {
     const values = new Set()
     docs.forEach(d => {
-      const local = Array.isArray(d[attr])
-        ? Array.isArray(d[attr])
-        : [d[attr]]
+      const local = Array.isArray(d[attribute])
+        ? d[attribute]
+        : [d[attribute]]
 
-      local.forEach(values.add)
+      local.forEach(a => values.add(a))
     })
 
-    res.json([...values])
+    res.json([...values].filter(v => v))
   })
 })
 
