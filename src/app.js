@@ -174,7 +174,7 @@ app.post('/people', async (req, res) => {
     })
     await saveKueJob(createJob.attempts(3))
     let signupTemplate = 'bnc-signup'
-    if (body.source === 'justicedemocrats') {
+    if (req.headers.origin === 'https://justicedemocrats.com') {
       signupTemplate = 'jd-signup'
     }
     await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', signupTemplate, { name: 'Friend' })
