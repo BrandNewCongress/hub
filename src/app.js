@@ -10,6 +10,7 @@ import kue from 'kue'
 import basicAuth from 'basic-auth'
 import apps from './apps'
 import BSD from './bsd'
+import apiLog from './api-log'
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -72,7 +73,7 @@ app.get('/forms/:id/count', async (req, res) => {
   res.send({ count: formCount })
 })
 
-app.get('/teams', async (req, res) => {
+app.get('/teams', apiLog, async (req, res) => {
   try {
     let teams = await airtable.findAll('Teams')
     teams = teams.map((team) => ({
@@ -89,7 +90,7 @@ app.get('/teams', async (req, res) => {
   }
 })
 
-app.post('/nominations', async (req, res) => {
+app.post('/nominations', apiLog, async (req, res) => {
   try {
     const body = req.body
     if (!body.nominatorName || !body.nominatorEmail || !body.nominatorPhone || !body.nomineeName) {
@@ -158,7 +159,7 @@ app.post('/nominations', async (req, res) => {
   }
 })
 
-app.post('/people', async (req, res) => {
+app.post('/people', apiLog, async (req, res) => {
   try {
     const body = req.body
     const createJob = queue.createJob('createPerson', {
@@ -194,7 +195,7 @@ app.post('/people', async (req, res) => {
   }
 })
 
-app.post('/volunteers', async (req, res) => {
+app.post('/volunteers', apiLog, async (req, res) => {
   try {
     const body = req.body
     const addressLines = body.volunteerAddress ? body.volunteerAddress.split('\n') : []
@@ -242,7 +243,7 @@ app.post('/volunteers', async (req, res) => {
   }
 })
 
-app.get('/people/count', async (req, res) => {
+app.get('/people/count', apiLog, async (req, res) => {
   try {
     let response = null
     response = await axios.get(`https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`, { headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, validateStatus: () => true })
