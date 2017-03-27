@@ -36,7 +36,7 @@ const model = (name, BASE, verbose) => {
           schema.fields[field] &&
           schema.fields[field]._type == 'array' &&
           schema.fields[field]._subType._type == 'string' &&
-          !(['race', 'occupations', 'potentialVolunteer'].includes(field))
+          ltl[field]
         )
       : []
 
@@ -57,8 +57,14 @@ const model = (name, BASE, verbose) => {
               return reject(err)
             }
 
-            if (member.id) linkedModel.update(member.id, member).then(onsuccess).catch(onerr)
-            else linkedModel.create(member).then(onsuccess).catch(onerr)
+            if (member.id) {
+              linkedModel.update(member.id, member).then(onsuccess).catch(err => {
+                linkedModel.create(member).then(onsuccess).catch(onerr)
+              })
+            } else {
+              linkedModel.create(member).then(onsuccess).catch(onerr)
+            }
+
           }))
         }
       })

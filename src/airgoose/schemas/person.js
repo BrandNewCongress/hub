@@ -21,9 +21,9 @@ export default yup.object().shape({
   occupations: yup.array().of(yup.string()),
   /* LINKED FIELDS */
   emails: yup.array().of(yup.string()),
+  district: yup.array().of(yup.string()),
   evaluations: yup.array().of(yup.string()),
   nominations: yup.array().of(yup.string()),
   addresses: yup.array().of(yup.string()),
-  emailAddresses: yup.array().of(yup.string().transform((value) => value.replace(/\s/g, '')).email()),
   phoneNumbers: yup.array().of(yup.string()),
 })

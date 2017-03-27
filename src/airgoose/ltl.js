@@ -11,9 +11,10 @@ export default {
     evaluator: 'Person'
   },
   District: {},
-  Addresses: {},
+  Address: {},
   Nomination: {
-    person: 'Person'
+    person: 'Person',
+    congressionalDistrict: 'District'
   },
   Contact: {
     person: 'Person'

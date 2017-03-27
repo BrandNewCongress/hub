@@ -10,13 +10,15 @@ const Nominations = db.get('Nominations')
 const People = db.get('People')
 const Tickets = db.get('Tickets')
 const ContactLogs = db.get('Contact Logs')
+const Districts = db.get('Congressional Districts')
 
 const models = {
   'Nominee Evaluations': Evaluations,
   'Nominations': Nominations,
   'People': People,
   'Tickets': Tickets,
-  'Contact Logs': ContactLogs
+  'Contact Logs': ContactLogs,
+  'Congressional Districts': Districts
 }
 
 const metrics = express()
