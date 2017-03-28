@@ -73,7 +73,7 @@ app.get('/forms/:id/count', async (req, res) => {
   res.send({ count: formCount })
 })
 
-app.get('/teams', apiLog, async (req, res) => {
+app.get('/teams', async (req, res) => {
   try {
     let teams = await airtable.findAll('Teams')
     teams = teams.map((team) => ({
@@ -243,7 +243,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
   }
 })
 
-app.get('/people/count', apiLog, async (req, res) => {
+app.get('/people/count', async (req, res) => {
   try {
     let response = null
     response = await axios.get(`https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`, { headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, validateStatus: () => true })
