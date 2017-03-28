@@ -94,6 +94,7 @@ app.post('/nominations', apiLog, async (req, res) => {
   try {
     const body = req.body
     if (!body.nominatorName || !body.nominatorEmail || !body.nominatorPhone || !body.nomineeName) {
+      log.error(`Not enough info for ${JSON.stringify(body)}`)
       res.sendStatus(400)
       return
     }
