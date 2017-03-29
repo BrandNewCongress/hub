@@ -117,6 +117,7 @@ app.post('/nominations', apiLog, async (req, res) => {
       Email: body.nomineeEmail,
       Phone: body.nomineePhone,
       City: body.nomineeCity,
+      'Nominator Personal': body.nominatorPersonal ? 'Yes' : 'No',
       'State Abbreviation': body.nomineeState,
       'Congressional District Code': body.nomineeDistrict,
       Facebook: body.nomineeFacebook,
