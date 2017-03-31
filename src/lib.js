@@ -236,13 +236,12 @@ const states = [
 
 const atLargeStates = ['AK', 'DE', 'MT', 'ND', 'SD', 'VT', 'WY']
 
-const e = {}
 
-e.toTitleCase = function (str) {
+function toTitleCase (str) {
   return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
 }
 
-e.isEmpty = function (val) {
+function isEmpty (val) {
   if (typeof val === 'undefined' || val === null || (val.hasOwnProperty('trim') && val.trim() === '')) {
     return true
   }
@@ -252,7 +251,7 @@ e.isEmpty = function (val) {
   return false
 }
 
-e.formatDate = function (date) {
+function formatDate (date) {
   if (isEmpty(date)) {
     return null
   }
@@ -263,21 +262,21 @@ e.formatDate = function (date) {
   return dateObj
 }
 
-e.formatEmail = function (email) {
+function formatEmail (email) {
   if (isEmpty(email) || email.match('@') === null) {
     return null
   }
   return email.trim().toLowerCase()
 }
 
-e.formatText = function (text) {
+function formatText (text) {
   if (isEmpty(text)) {
     return null
   }
   return text.trim()
 }
 
-e.formatPhoneNumber = function (number) {
+function formatPhoneNumber (number) {
   if (isEmpty(number)) {
     return null
   }
@@ -291,7 +290,7 @@ e.formatPhoneNumber = function (number) {
   }
 }
 
-e.formatLink = function (link) {
+function formatLink (link) {
   if (isEmpty(link)) {
     return null
   }
@@ -307,14 +306,14 @@ e.formatLink = function (link) {
   return null
 }
 
-e.capitalizeText = function (text) {
+function capitalizeText (text) {
   if (isEmpty(text)) {
     return null
   }
   return toTitleCase(text.trim())
 }
 
-e.formatStateAbbreviation = function (state) {
+function formatStateAbbreviation (state) {
   if (isEmpty(state)) {
     return null
   }
@@ -336,7 +335,7 @@ e.formatStateAbbreviation = function (state) {
   return null
 }
 
-e.formatDistrictCode = function (district) {
+function formatDistrictCode (district) {
   if (isEmpty(district)) {
     return null
   }
@@ -357,7 +356,7 @@ e.formatDistrictCode = function (district) {
   return null
 }
 
-e.formatDistrict = function (stateAbbreviation, districtCode) {
+function formatDistrict (stateAbbreviation, districtCode) {
   if (isEmpty(stateAbbreviation)) {
     return null
   }
@@ -371,7 +370,7 @@ e.formatDistrict = function (stateAbbreviation, districtCode) {
   return `${stateAbbreviation}-${districtCode}`
 }
 
-e.formatPoliticalParty = function (politicalParty) {
+function formatPoliticalParty (politicalParty) {
   const validParties = [
     'Democrat',
     'Republican',
@@ -391,7 +390,7 @@ e.formatPoliticalParty = function (politicalParty) {
   return foundParty
 }
 
-e.formatSourceTeamName = function (teamName) {
+function formatSourceTeamName (teamName) {
   const validTeams = [
     'BNC Staff',
     'Call Team',
@@ -411,4 +410,8 @@ e.formatSourceTeamName = function (teamName) {
   return foundTeam
 }
 
-module.exports = e
+module.exports = {
+  formatSourceTeamName, formatPoliticalParty, formatDistrict, formatDistrictCode,
+  formatStateAbbreviation, capitalizeText, formatLink, formatPhoneNumber, formatText,
+  formatEmail, formatDate, isEmpty, toTitleCase
+}
