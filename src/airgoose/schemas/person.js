@@ -1,6 +1,6 @@
-import yup from 'yup'
+const yup = require('yup')
 
-export default yup.object().shape({
+module.exports = yup.object().shape({
   /* SIMPLE FIELDS */
   name: yup.string(),
   photos: yup.array().of(yup.object()),
@@ -25,5 +25,5 @@ export default yup.object().shape({
   nominations: yup.array().of(yup.string()),
   addresses: yup.array().of(yup.string()),
   emailAddresses: yup.array().of(yup.string().transform((value) => value.replace(/\s/g, '')).email()),
-  phoneNumbers: yup.array().of(yup.string()),
+  phoneNumbers: yup.array().of(yup.string())
 })

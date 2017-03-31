@@ -1,4 +1,4 @@
-import evaluator from './evaluator'
-import metrics from './metrics'
+const evaluator = require('./evaluator')
+const metrics = require('./metrics')
 
-export default [evaluator, metrics]
+module.exports = [evaluator, metrics]

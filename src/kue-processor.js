@@ -1,7 +1,7 @@
-import kue from 'kue'
-import airtable from './airtable'
-import nationbuilder from './nationbuilder'
-import log from './log'
+const kue = require('kue')
+const airtable = require('./airtable')
+const nationbuilder = require('./nationbuilder')
+const log = require('./log')
 
 log.info('kue-processor is running')
 const queue = kue.createQueue({

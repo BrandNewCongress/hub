@@ -1,8 +1,7 @@
-require('babel-polyfill')
-import airgoose from '../airgoose'
-import tl from '../airgoose/tl'
-import mongo, {getMetadata, setMetadata} from './mongo'
-import collections from './collections'
+const airgoose from '../airgoose'
+const tl = require('../airgoose/tl')
+const mongo = require('./mongo')
+const collections = require('./collections')
 
 const transform = (json, dateFields) => Object.assign(json, dateFields.reduce((acc, field) =>
   Object.assign(acc, json[field]

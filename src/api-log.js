@@ -1,7 +1,7 @@
-import monk from 'monk'
+const monk = require('monk')
 const db = monk(process.env.MONGODB_URI || 'localhost:27017/bnc')
 
-export default (req, res, next) => {
+module.exports = (req, res, next) => {
   const data = {
     method: req.method,
     path: req.path,
