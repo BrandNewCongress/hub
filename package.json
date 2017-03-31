@@ -4,8 +4,8 @@
   "description": "Brand New Congress API",
   "main": "src",
   "engines": {
-    "node": "6.2.2",
-    "npm": "3.7.3"
+    "node": "7.7.2",
+    "npm": "4.1.2"
   },
   "scripts": {
     "test": "test",
