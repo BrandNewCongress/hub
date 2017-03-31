@@ -28,6 +28,7 @@ class Nationbuilder {
     facebook,
     twitter,
     linkedIn,
+    source,
     utmSource,
     utmMedium,
     utmCampaign,
@@ -52,6 +53,7 @@ class Nationbuilder {
 
     const requestBody = {
       phone,
+      source,
       facebook_profile_url: facebookURL,
       twitter_login: twitterName,
       first_name: firstName,
@@ -63,6 +65,7 @@ class Nationbuilder {
       utm_medium: utmMedium,
       utm_campaign: utmCampaign
     }
+
     const response = await this.makeRequest('POST', 'people', { person: requestBody })
     if (response && (response.status === 409 || response.status === 201)) {
       const personId = response.data.person.id
