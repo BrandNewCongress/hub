@@ -1,6 +1,6 @@
-import yup from 'yup'
+const yup = require('yup')
 
-export default yup.object().shape({
+module.exports = yup.object().shape({
   name: yup.string(),
   nominatorName: yup.string(),
   nominatorEmail: yup.string(),
@@ -28,5 +28,5 @@ export default yup.object().shape({
   sourceTeamName: yup.string(),
   profile: yup.string(),
   otherLinks: yup.string(),
-  nominatorPersonal: yup.string(),
+  nominatorPersonal: yup.string()
 })

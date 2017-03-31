@@ -1,5 +1,5 @@
-import axios from 'axios'
-import log from './log'
+const axios = require('axios')
+const log = require('./log')
 
 const monthNames = ['Invalid', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -99,4 +99,4 @@ class Maestro {
 
 const maestroSingleton = new Maestro
 
-export default maestroSingleton
+module.exports = maestroSingleton

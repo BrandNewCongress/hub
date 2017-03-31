@@ -1,15 +1,17 @@
-import requestPromise from 'request-promise'
-import url from 'url'
-import crypto from 'crypto'
-import querystring from 'querystring'
-import { parseString } from 'xml2js'
-import Promise from 'bluebird'
-import log from './log'
-import moment from 'moment-timezone'
+const requestPromise = require('request-promise')
+const url = require('url')
+const crypto = require('crypto')
+const querystring = require('querystring')
+const { parseString } = require('xml2js')
+const Promise = require('bluebird')
+const log = require('./log')
+const moment = require('moment-timezone')
 
 const parseStringPromise = Promise.promisify(parseString)
 
-export class BSDValidationError extends Error {
+const e = {}
+
+class BSDValidationError extends Error {
   constructor(message) {
     super(message)
     this.message = message
@@ -17,7 +19,8 @@ export class BSDValidationError extends Error {
   }
 }
 
-export class BSDExistsError extends Error {
+
+class BSDExistsError extends Error {
   constructor(message) {
     super(message)
     this.message = message
@@ -25,7 +28,7 @@ export class BSDExistsError extends Error {
   }
 }
 
-export default class BSD {
+module.exports = class BSD {
   constructor(host, id, secret) {
     this.baseURL = url.parse('http://' + host)
     this.baseURL.pathname = '/page/api/'
@@ -92,7 +95,7 @@ export default class BSD {
       consObj[key] = this.cleanField(constituent[key])
     })
     consObj['cons_addr'] = []
-    if (constituent.cons_addr){
+    if (constituent.cons_addr) {
       constituent.cons_addr.forEach((address) => {
         let addrObj = {}
         let keys = ['addr1', 'addr2', 'city', 'state_cd', 'zip', 'country', 'latitude', 'longitude', 'is_primary', 'cons_addr_type_id', 'cons_addr_type']
@@ -103,7 +106,7 @@ export default class BSD {
       })
     }
     consObj['cons_phone'] = []
-    if (constituent.cons_phone){
+    if (constituent.cons_phone) {
       constituent.cons_phone.forEach((phone) => {
         let phoneObj = {}
         let keys = ['phone', 'phone_type', 'is_subscribed', 'is_primary']
@@ -114,7 +117,7 @@ export default class BSD {
       })
     }
     consObj['cons_email'] = []
-    if (constituent.cons_email){
+    if (constituent.cons_email) {
       constituent.cons_email.forEach((email) => {
         let emailObj = {}
         let keys = ['email', 'email_type', 'is_subscribed', 'is_primary']
@@ -129,7 +132,7 @@ export default class BSD {
   }
 
   generateBSDURL(callPath, params, method) {
-    params = method === 'POST' ? {} : {...params}
+    params = method === 'POST' ? {} : Object.assign({}, params)
 
     if (callPath[0] === '/')
       callPath = callPath.substring(1, callPath.length)
@@ -160,7 +163,7 @@ export default class BSD {
     let encryptedMessage = crypto.createHmac('sha1', this.apiSecret)
     encryptedMessage.update(signingString)
     let apiMac = encryptedMessage.digest('hex')
-    sortedParams.push({api_mac : apiMac})
+    sortedParams.push({ api_mac: apiMac })
 
     if (method === 'POST') {
       let queryParamKeys = ['api_id', 'api_ts', 'api_ver', 'api_mac']
@@ -170,8 +173,8 @@ export default class BSD {
     }
 
     let encodedQueryString = sortedParams.map((element) => {
-        return querystring.stringify(element)
-      }).join('&')
+      return querystring.stringify(element)
+    }).join('&')
 
     let finalURL = url.parse(url.resolve(url.format(this.baseURL), callPath))
     finalURL.protocol = 'https:'
@@ -180,7 +183,7 @@ export default class BSD {
   }
 
   async getConstituentGroup(groupId) {
-    let response = await this.request('cons_group/get_constituent_group', {cons_group_id: groupId}, 'GET')
+    let response = await this.request('cons_group/get_constituent_group', { cons_group_id: groupId }, 'GET')
     response = await parseStringPromise(response)
     let group = response.api.cons_group
     if (!group)
@@ -210,13 +213,13 @@ export default class BSD {
   }
 
   async getFormSignupCount(formId) {
-    let response = await this.request('signup/signup_count', {signup_form_id: formId}, 'GET')
+    let response = await this.request('signup/signup_count', { signup_form_id: formId }, 'GET')
     response = await parseStringPromise(response)
     return parseInt(response.api.count[0], 10)
   }
 
   async getForm(formId) {
-    let response = await this.request('signup/get_form', {signup_form_id: formId}, 'GET')
+    let response = await this.request('signup/get_form', { signup_form_id: formId }, 'GET')
 
     response = await parseStringPromise(response)
     let survey = response.api.signup_form
@@ -229,7 +232,7 @@ export default class BSD {
   }
 
   async listFormFields(formId) {
-    let response = await this.request('signup/list_form_fields', {signup_form_id: formId})
+    let response = await this.request('signup/list_form_fields', { signup_form_id: formId })
     response = await parseStringPromise(response)
     let formFields = response.api.signup_form_field
     let formFieldsObjects = formFields.map((field) => {
@@ -285,7 +288,7 @@ export default class BSD {
   }*/
 
   async getConsIdsForGroup(groupId) {
-    let response = await this.request('/cons_group/get_cons_ids_for_group', {cons_group_id: groupId})
+    let response = await this.request('/cons_group/get_cons_ids_for_group', { cons_group_id: groupId })
     return {
       consIds: response.trim().split('\n')
     }
@@ -294,7 +297,7 @@ export default class BSD {
   async getDeferredResult(deferredId) {
     return new Promise((resolve, reject) => {
       setTimeout(async () => {
-        let response = await this.makeRESTRequest('/get_deferred_results', {deferred_id: deferredId}, 'GET')
+        let response = await this.makeRESTRequest('/get_deferred_results', { deferred_id: deferredId }, 'GET')
         if (response.statusCode === 202)
           resolve(this.getDeferredResult(deferredId))
         else
@@ -330,7 +333,7 @@ export default class BSD {
     function generateXML(data) {
       let xmlData = ''
       Object.keys(data).forEach((key) => {
-        if (typeof data[key] === 'object'){
+        if (typeof data[key] === 'object') {
           const bundleIdString = data[key].id ? ` id="${data[key].id}"` : ''
           xmlData = xmlData + `<${key}${bundleIdString}>${generateXML(data[key])}</${key}>`
         }
@@ -367,39 +370,39 @@ export default class BSD {
     await this.setConstituentPassword(email, password)
     return constituent
 
-    function randString(x){
-        let s = ''
-        while(s.length<x&&x>0){
-            let r = Math.random()
-            s+= (r<0.1?Math.floor(r*100):String.fromCharCode(Math.floor(r*26) + (r>0.5?97:65)))
-        }
-        return s
+    function randString(x) {
+      let s = ''
+      while (s.length < x && x > 0) {
+        let r = Math.random()
+        s += (r < 0.1 ? Math.floor(r * 100) : String.fromCharCode(Math.floor(r * 26) + (r > 0.5 ? 97 : 65)))
+      }
+      return s
     }
   }
 
   async setConstituentPassword(email, password) {
     // response will be empty if successful
-    let response = await this.request('/account/set_password', {userid: email, password: password}, 'POST')
+    let response = await this.request('/account/set_password', { userid: email, password }, 'POST')
     return 'password set'
   }
 
   async checkCredentials(email, password) {
     let response
-    try{
-      response = await this.request('/account/check_credentials', {userid: email, password: password}, 'POST')
+    try {
+      response = await this.request('/account/check_credentials', { userid: email, password }, 'POST')
     }
-    catch(e){
+    catch (e) {
       return 'invalid username or password'
     }
     return await parseStringPromise(response)
   }
 
   async addRSVPToEvent(rsvpDetails) {
-    let params = {
+    let params = Object.assign({
       'will_attend': 1,
-      'guests': 0,
-      ...rsvpDetails,
-    }
+      'guests': 0
+    }, rsvpDetails)
+
     let host = this.baseURL.protocol + '//' + this.baseURL.host
     let URL = host + '/page/graph/addrsvp' + '?' + querystring.stringify(params)
 
@@ -419,7 +422,7 @@ export default class BSD {
   async deleteEvents(eventIdArray) {
     let promises = eventIdArray.map((event_id) => {
       return (
-        this.request('/event/delete_event', {event_id}, 'POST')
+        this.request('/event/delete_event', { event_id }, 'POST')
           .catch((ex) => {
             log.error(`BSD event ${event_id} could not be deleted.`)
           })
@@ -504,7 +507,7 @@ export default class BSD {
       else if (key === 'duration')
         eventDate[key] = event[key]
       else if (key === 'contact_phone' && event[key])
-        inputs[key] = event[key].replace(/\D/g,'')
+        inputs[key] = event[key].replace(/\D/g, '')
       else if (key === 'attendee_visibility') {
         inputs[key] = 'NONE'
         if (event[key] === 0)
@@ -528,9 +531,9 @@ export default class BSD {
 
     // BSD API gets mad if we send this in
     delete inputs['event_id']
-    let response = await this.request('/event/update_event', {event_api_version: 2, values: JSON.stringify(inputs)}, 'POST')
+    let response = await this.request('/event/update_event', { event_api_version: 2, values: JSON.stringify(inputs) }, 'POST')
 
-    if (response.validation_errors){
+    if (response.validation_errors) {
       let eventIdErrors = response.validation_errors.event_id_obfuscated
       if (eventIdErrors && eventIdErrors.indexOf('exists_in_table') > -1)
         throw new BSDExistsError(JSON.stringify(response.validation_errors))
@@ -542,7 +545,7 @@ export default class BSD {
   async createEvent(event) {
     let params = this.apiInputsFromEvent(event)
     log.debug(params)
-    let response = await this.request('/event/create_event', {event_api_version: 2, values: JSON.stringify(params)}, 'POST')
+    let response = await this.request('/event/create_event', { event_api_version: 2, values: JSON.stringify(params) }, 'POST')
     if (response.validation_errors)
       throw new BSDValidationError(JSON.stringify(response.validation_errors))
     else if (typeof response.event_id_obfuscated === 'undefined')
@@ -562,7 +565,7 @@ export default class BSD {
       log.debug(`Would have made BSD API call with options: ${JSON.stringify(options)}`)
       return {
         statusCode: 200,
-        body: {'event_id_obfuscated' : 'test'}
+        body: { 'event_id_obfuscated': 'test' }
       }
     }
     else {
@@ -576,7 +579,7 @@ export default class BSD {
 
     let options = {
       uri: finalURL,
-      method: method,
+      method,
       resolveWithFullResponse: true,
       json: true
     }
@@ -588,7 +591,7 @@ export default class BSD {
       }).join('&')
 
       options['body'] = body
-      options['headers'] = {'content-type': 'application/x-www-form-urlencoded'}
+      options['headers'] = { 'content-type': 'application/x-www-form-urlencoded' }
     }
 
     return this.requestWrapper(options)
@@ -598,7 +601,7 @@ export default class BSD {
     let finalURL = this.generateBSDURL(callPath, params, method)
     let options = {
       uri: finalURL,
-      method: method,
+      method,
       body: params,
       resolveWithFullResponse: true
     }

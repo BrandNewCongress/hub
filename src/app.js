@@ -1,16 +1,16 @@
-import axios from 'axios'
-import bodyParser from 'body-parser'
-import express from 'express'
-import log from './log'
-import mail from './mail'
-import maestro from './maestro'
-import airtable from './airtable'
-import { isEmpty } from './lib'
-import kue from 'kue'
-import basicAuth from 'basic-auth'
-import apps from './apps'
-import BSD from './bsd'
-import apiLog from './api-log'
+const axios = require('axios')
+const bodyParser = require('body-parser')
+const express = require('express')
+const log = require('./log')
+const mail = require('./mail')
+const maestro = require('./maestro')
+const airtable = require('./airtable')
+const { isEmpty } = require('./lib')
+const kue = require('kue')
+const basicAuth = require('basic-auth')
+const apps = require('./apps')
+const BSD = require('./bsd')
+const apiLog = require('./api-log')
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -30,6 +30,7 @@ const queue = kue.createQueue({
 
 const app = express()
 const port = process.env.PORT
+
 async function saveKueJob(job) {
   return new Promise((resolve, reject) => {
     job.removeOnComplete(true).save((err) => {
@@ -47,6 +48,7 @@ const stripBadPunc = str => str ? str.replace(/[",]/g, '') : str
 app.enable('trust proxy')
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
+
 app.use((req, res, next) => {
   res.set({
     'Access-Control-Allow-Origin': '*',
@@ -55,6 +57,7 @@ app.use((req, res, next) => {
   })
   return next()
 })
+
 app.use('/queue', auth('admin', process.env.QUEUE_PASSWORD), kue.app)
 
 apps.forEach(a => {
@@ -222,9 +225,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
       name: stripBadPunc(body.volunteerName),
       email: body.volunteerEmail,
       phone: body.volunteerPhone,
-      address: {
-        ...address
-      },
+      address: Object.assign({}, address),
       linkedIn: body.volunteerLinkedIn,
       profile: body.volunteerProfile,
       tags

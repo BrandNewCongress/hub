@@ -1,6 +1,6 @@
 const fs = require('fs')
 const monk = require('monk')
-const toAirCase = require('../airgoose/to-air-case').default
+const toAirCase = require('../airgoose/to-air-case')
 const db = monk(process.env.MONGODB_URI || 'localhost:27017/bnc')
 
 const statuses = {}

@@ -1,8 +1,8 @@
-import express from 'express'
-import monk from 'monk'
-import cors from 'cors'
-import ltl from '../airgoose/ltl'
-import tl from '../airgoose/tl'
+const express = require('express')
+const monk = require('monk')
+const cors = require('cors')
+const ltl = require('../airgoose/ltl')
+const tl = require('../airgoose/tl')
 
 const db = monk(process.env.MONGODB_URI || 'localhost:27017/bnc')
 const Evaluations = db.get('Nominee Evaluations')
@@ -13,9 +13,9 @@ const ContactLogs = db.get('Contact Logs')
 
 const models = {
   'Nominee Evaluations': Evaluations,
-  'Nominations': Nominations,
-  'People': People,
-  'Tickets': Tickets,
+  Nominations,
+  People,
+  Tickets,
   'Contact Logs': ContactLogs
 }
 
@@ -46,7 +46,7 @@ const querify = (params, model) => {
       }
     } else {
       if (params[p])
-        query[p] = {$in: Array.isArray(params[p])
+        query[p] = { $in: Array.isArray(params[p])
           ? params[p]
           : [params[p]]
         }
@@ -59,12 +59,18 @@ const querify = (params, model) => {
 metrics.get('/metrics/query', async (req, res) => {
   try {
     const {
-      operation, model, attribute, secondaryAttribute, ...query
+      operation, model, attribute, secondaryAttribute
     } = req.query
+
+    const query = {}
+    for (let key of req.query) {
+      if (!['operation', 'model', 'attribute', 'secondaryAttribute'].includes(key))
+        query[key] = req.query[key]
+    }
 
     let docs
 
-    const firstDocs = await models[model].find(querify(query, model), {fields: ['id', attribute]})
+    const firstDocs = await models[model].find(querify(query, model), { fields: ['id', attribute] })
     if (operation == 'count') {
       return res.json(firstDocs.length)
     }
@@ -75,10 +81,10 @@ metrics.get('/metrics/query', async (req, res) => {
       const sing = Object.keys(tl).filter(s => tl[s] == req.query.model)[0]
       const secondaryModel = ltl[sing][attribute]
       const secondaryModelField = Object.entries(ltl[secondaryModel])
-        .filter(([k,v]) => v == sing).map(([a,b]) => a)
+        .filter(([k, v]) => v == sing).map(([a, b]) => a)
 
       const secondDocs = await models[tl[secondaryModel]].find({
-        [secondaryModelField]: {$in: firstDocs.map(d => d.id)}
+        [secondaryModelField]: { $in: firstDocs.map(d => d.id) }
       })
 
       docs = secondDocs
@@ -86,7 +92,7 @@ metrics.get('/metrics/query', async (req, res) => {
 
     if (!docs) docs = firstDocs
 
-    const data = {[attr]: {}}
+    const data = { [attr]: {} }
     docs.forEach(d => {
       const values = Array.isArray(d[attr])
         ? d[attr]
@@ -109,7 +115,7 @@ metrics.get('/metrics/query', async (req, res) => {
 metrics.get('/metrics/model-options', (req, res) => {
   const singular = Object.keys(tl).filter(sing => tl[sing] == req.query.model)[0]
 
-  models[req.query.model].find({}, {limit: 50})
+  models[req.query.model].find({}, { limit: 50 })
   .then(docs => {
     const attributes = new Set()
     docs.forEach(d => {
@@ -135,7 +141,7 @@ metrics.get('/metrics/model-options', (req, res) => {
 metrics.get('/metrics/attribute-options', (req, res) => {
   const attribute = req.query.attribute
 
-  models[req.query.model].find({}, {limit: 50, fields: [attribute]})
+  models[req.query.model].find({}, { limit: 50, fields: [attribute] })
   .then(docs => {
     const values = new Set()
     docs.forEach(d => {
@@ -150,4 +156,4 @@ metrics.get('/metrics/attribute-options', (req, res) => {
   })
 })
 
-export default metrics
+module.exports = metrics

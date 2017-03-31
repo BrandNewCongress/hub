@@ -1,7 +1,7 @@
-import axios from 'axios'
-import log from './log'
-import url from 'url'
-import { formatLink } from './lib'
+const axios = require('axios')
+const log = require('./log')
+const url = require('url')
+const { formatLink } = require('./lib')
 
 class Nationbuilder {
   async makeRequest(method, path, body) {
@@ -77,10 +77,7 @@ class Nationbuilder {
         newRequest.person.note = personProfile ? `${personProfile}; ${profile}` : profile
       }
       if (response.status === 409) {
-        newRequest.person = {
-          ...newRequest.person,
-          ...requestBody
-        }
+        newRequest.person = Object.assign(newRequest.person, requestBody)
         delete newRequest.person.email1
       }
       const updateResponse = await this.updatePerson(personId, newRequest)
@@ -104,4 +101,4 @@ class Nationbuilder {
 }
 
 const BNCNationbuilderSingleton = new Nationbuilder()
-export default BNCNationbuilderSingleton
+module.exports = BNCNationbuilderSingleton

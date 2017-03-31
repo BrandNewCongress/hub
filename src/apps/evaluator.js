@@ -1,6 +1,6 @@
-import express from 'express'
-import airgoose from '../airgoose'
-import cors from 'cors'
+const express = require('express')
+const airgoose = require('../airgoose')
+const cors = require('cors')
 
 const Person = airgoose.model('Person')
 
@@ -10,7 +10,7 @@ evaluator.use(cors())
 
 evaluator.get('/person/byname', (req, res) => {
   Person
-  .findOne({name: req.query.name})
+  .findOne({ name: req.query.name })
   .exec((err, person) => {
     if (err) return res.status(404).json(err)
     return res.json(person)
@@ -66,4 +66,4 @@ evaluator.put('/person/:id', (req, res) => {
   .catch(err => res.status(400).json(err))
 })
 
-export default evaluator
+module.exports = evaluator

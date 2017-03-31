@@ -1,6 +1,6 @@
-import yup from 'yup'
+const yup = require('yup')
 
-export default yup.object().shape({
+module.exports = yup.object().shape({
   score: yup.number().positive().integer(),
   round: yup.string().matches(/R[0-9]/),
   districtScore: yup.string(),
