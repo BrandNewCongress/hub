@@ -44,6 +44,8 @@ async function saveKueJob(job) {
 }
 
 const stripBadPunc = str => str ? str.replace(/[",]/g, '') : str
+const source = req => req.headers.origin === 'https://justicedemocrats.com'
+  ? 'JD' : 'BNC'
 
 app.enable('trust proxy')
 app.use(bodyParser.json())
@@ -106,6 +108,7 @@ app.post('/nominations', apiLog, async (req, res) => {
       name: stripBadPunc(body.nominatorName),
       email: body.nominatorEmail,
       phone: body.nominatorPhone,
+      source: source(req),
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
@@ -174,6 +177,7 @@ app.post('/people', apiLog, async (req, res) => {
       address: {
         zip: body.zip
       },
+      source: source(req),
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
@@ -228,6 +232,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
       address: Object.assign({}, address),
       linkedIn: body.volunteerLinkedIn,
       profile: body.volunteerProfile,
+      source: source(req),
       tags
     })
     await saveKueJob(volunteerJob)
