@@ -1,2 +1,2 @@
-web: node ./build
+web: node ./src
 worker: npm run worker
