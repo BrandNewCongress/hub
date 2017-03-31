@@ -1,4 +1,4 @@
-import Baby from 'babyparse'
+const Baby = require('babyparse')
 
 async function parse() {
   const nominations = Baby.parseFiles(`${process.argv[3]}/nominations.csv`, {

@@ -1,6 +1,6 @@
-import airtable from '../airtable'
-import Baby from 'babyparse'
-import { toTitleCase, formatText } from '../lib'
+const airtable = require('../airtable')
+const Baby = require('babyparse')
+const { toTitleCase, formatText } = require('../lib')
 
 async function parse() {
   const toImport = []

@@ -1,4 +1,4 @@
-import keyMap from './key-map'
-import toCamelCase from 'to-camel-case'
+const keyMap = require('./key-map')
+const toCamelCase = require('to-camel-case')
 
-export default raw => keyMap(Object.assign({id: raw.id}, raw._rawJson.fields), toCamelCase)
+module.exports = raw => keyMap(Object.assign({ id: raw.id }, raw._rawJson.fields), toCamelCase)

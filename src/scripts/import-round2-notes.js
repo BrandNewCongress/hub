@@ -1,8 +1,8 @@
-import airtable from '../airtable'
-import Baby from 'babyparse'
-import { formatText, isEmpty } from '../lib'
-import fs from 'fs'
-import log from '../log'
+const airtable = require('../airtable')
+const Baby = require('babyparse')
+const { formatText, isEmpty } = require('../lib')
+const fs = require('fs')
+const log = require('../log')
 
 const evaluators = {
   alex: {
@@ -140,9 +140,6 @@ async function parse() {
   const inputData = fs.readFileSync(process.argv[3])
   const jsonData = JSON.parse(inputData)
   const people = Object.keys(jsonData)
-  
-
 }
 
-parse()
-.catch((ex) => console.log(ex))
+parse().catch((ex) => console.log(ex))

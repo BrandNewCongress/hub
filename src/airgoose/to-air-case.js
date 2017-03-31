@@ -1,10 +1,10 @@
-import toSpaceCase from 'to-space-case'
+const toSpaceCase = require('to-space-case')
 
 const specialCases = {
   linkedIn: 'LinkedIn'
 }
 
-export default str => {
+module.exports = str => {
   if (specialCases[str]) {
     return specialCases[str]
   }

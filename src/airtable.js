@@ -1,6 +1,6 @@
-import Airtable from 'airtable'
-import log from './log'
-import {
+const Airtable = require('airtable')
+const log = require('./log')
+const {
   isEmpty,
   toTitleCase,
   formatDate,
@@ -13,7 +13,7 @@ import {
   formatDistrict,
   formatPoliticalParty,
   formatSourceTeamName
-} from './lib'
+} = require('./lib')
 
 class BNCAirtable {
   constructor() {
@@ -282,12 +282,12 @@ class BNCAirtable {
 
   async createNomination(rawNomination, progressFunc) {
     log.info(`Creating nomination for ${rawNomination.Name}...`)
-    const nomination = {
-      ...rawNomination,
+
+    const nomination = Object.assign({}, rawNomination, {
       'Date Submitted (Legacy)': formatDate(rawNomination['Date Submitted (Legacy)']),
       Source: formatText(rawNomination.Source),
       'Run for Office': formatText(rawNomination['Run for Office'])
-    }
+    })
 
     const nominatorEmails = rawNomination['Nominator Email'] ? rawNomination['Nominator Email']
       .replace(/\n/, ';')
@@ -413,15 +413,15 @@ class BNCAirtable {
       sourceTeam = await this.findOne('Teams', `LOWER({Name}) = "${this.escapeString(cleanedNomination.sourceTeamName.toLowerCase())}"`)
     }
 
-    const nominationToSubmit = {
-      ...nomination,
+    const nominationToSubmit = Object.assign({}, nomination, {
       State: stateId ? [stateId] : null,
       'Congressional District': districtId ? [districtId] : null,
       Person: [nominee.id],
       'Source Team': sourceTeam ? [sourceTeam.id] : null,
       Submitter: [submitter.id],
       Nominator: [nominator.id]
-    }
+    })
+
     const createdNomination = await this.create('Nominations', nominationToSubmit)
     progressFunc(100)
     log.info(`Finished creating nomination for ${nomination.Name}`)
@@ -430,5 +430,4 @@ class BNCAirtable {
 }
 
 const BNCAirtableSingleton = new BNCAirtable()
-export default BNCAirtableSingleton
-
+module.exports = BNCAirtableSingleton

@@ -1,13 +1,13 @@
-import Airtable from 'airtable'
-import schemas from './schemas'
-import toAirCase from './to-air-case'
-import toCamelCase from 'to-camel-case'
-import keyMap from './key-map'
-import linkedTableLookup from './ltl'
-import tableLookup from './tl'
-import deAirtable from './de-airtable'
-import airQuery from './air-query'
-import cannotEdit from './cannot-edit'
+const Airtable = require('airtable')
+const schemas = require('./schemas')
+const toAirCase = require('./to-air-case')
+const toCamelCase = require('to-camel-case')
+const keyMap = require('./key-map')
+const linkedTableLookup = require('./ltl')
+const tableLookup = require('./tl')
+const deAirtable = require('./de-airtable')
+const airQuery = require('./air-query')
+const cannotEdit = require('./cannot-edit')
 
 const model = (name, BASE, verbose) => {
   const base = new Airtable({
@@ -76,77 +76,77 @@ const model = (name, BASE, verbose) => {
   }
 
   const findCore = method => {
-      const toPopulate = []
-      const sortObjects = []
+    const toPopulate = []
+    const sortObjects = []
 
-      const doPopulate = (obj, fields) => new Promise((resolve, reject) => {
-        const promises = []
-        const toAssign = {}
+    const doPopulate = (obj, fields) => new Promise((resolve, reject) => {
+      const promises = []
+      const toAssign = {}
 
-        fields.forEach(attr => {
-          toAssign[attr] = []
+      fields.forEach(attr => {
+        toAssign[attr] = []
 
-          const linkedIds = (obj[attr] || [])
-          linkedIds.forEach(linkedId => {
-            promises.push(new Promise((resolve, reject) => {
-              base(tableLookup[ltl[attr]]).find(linkedId, (err, linkedObj) => {
-                if (err) return reject(err)
+        const linkedIds = (obj[attr] || [])
+        linkedIds.forEach(linkedId => {
+          promises.push(new Promise((resolve, reject) => {
+            base(tableLookup[ltl[attr]]).find(linkedId, (err, linkedObj) => {
+              if (err) return reject(err)
 
-                if (linkedObj) {
-                  const o = deAirtable(linkedObj)
-                  toAssign[attr].push(o)
-                }
+              if (linkedObj) {
+                const o = deAirtable(linkedObj)
+                toAssign[attr].push(o)
+              }
 
-                resolve(true)
-              })
-            }))
-          })
+              resolve(true)
+            })
+          }))
         })
+      })
 
-        Promise.all(promises)
+      Promise.all(promises)
         .then(_ => resolve(Object.assign(obj, toAssign)))
         .catch(reject)
-      })
+    })
 
       /*
        * Exec defined here so it, `populate`, and `sortObjects`, share an enclosed
        * array
        */
-      const exec = cb => {
-        method(sortObjects, (err, raw) => {
-          if (err) return cb(err)
-          if (!raw) return cb(new Error('Not found'))
+    const exec = cb => {
+      method(sortObjects, (err, raw) => {
+        if (err) return cb(err)
+        if (!raw) return cb(new Error('Not found'))
 
-          const promise = Array.isArray(raw)
+        const promise = Array.isArray(raw)
             ? Promise.all(raw.map(r => doPopulate(deAirtable(r), toPopulate)))
             : doPopulate(deAirtable(raw), toPopulate)
 
-          promise
+        promise
           .then(final => cb(null, final))
           .catch(cb)
-        })
-      }
+      })
+    }
 
       /*
        * A query returns the ability to call to populate some fields
        * and to immediately execute the query
        */
-      return ({
+    return ({
         // populate returns exec for chaining
-        populate: fields => {
-          fields.split(' ').forEach(f => toPopulate.push(f))
-          return {exec}
-        },
-        sort: fields => {
-          Object.keys(fields).forEach(f => sortObjects.push({
-            field: toAirCase(f),
-            direction: fields[f] == 1 ? 'asc' : 'desc'
-          }))
-          return {exec}
-        },
-        exec
-      })
-    }
+      populate: fields => {
+        fields.split(' ').forEach(f => toPopulate.push(f))
+        return { exec }
+      },
+      sort: fields => {
+        Object.keys(fields).forEach(f => sortObjects.push({
+          field: toAirCase(f),
+          direction: fields[f] == 1 ? 'asc' : 'desc'
+        }))
+        return { exec }
+      },
+      exec
+    })
+  }
 
   /*
    * Set of functions returned by `model`
@@ -222,4 +222,4 @@ const model = (name, BASE, verbose) => {
   }
 }
 
-export default {model}
+module.exports = { model }

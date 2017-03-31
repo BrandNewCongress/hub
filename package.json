@@ -4,20 +4,16 @@
   "description": "Brand New Congress API",
   "main": "src",
   "engines": {
-    "node": "6.2.2",
-    "npm": "3.7.3"
+    "node": "7.7.2",
+    "npm": "4.1.2"
   },
   "scripts": {
     "test": "test",
-    "clean": "rm -rf $OUTPUT_DIR",
     "lint": "eslint --fix --ext js --ext jsx src",
-    "prod-build": "babel ./src -d $OUTPUT_DIR --source-maps",
-    "postinstall": "if [ \"$NODE_ENV\" = production ] ; then npm run prod-build ; fi",
-    "start": "node $OUTPUT_DIR",
-    "worker": "node $OUTPUT_DIR/worker.js",
-    "predev-start": "npm run clean",
-    "dev-start": "nodemon -e js,jsx,md,mustache -w ./src --exec ./dev-tools/babel-run -- ./src",
-    "dev-worker": "nodemon -e js -w ./src --exec ./dev-tools/babel-run -- ./src/worker.js",
+    "start": "node ./src",
+    "worker": "node ./src/worker.js",
+    "dev-start": "nodemon ./src",
+    "dev-worker": "nodemon ./src/worker.js",
     "kue-dashboard": "kue-dashboard -p 3050 -r $REDIS_URL",
     "dev": "nf start -w --procfile ./dev-tools/Procfile.dev"
   },

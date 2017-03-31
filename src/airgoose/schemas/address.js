@@ -1,6 +1,6 @@
-import yup from 'yup'
+const yup = require('yup')
 
-export default yup.object().shape({
+module.exports = yup.object().shape({
   city: yup.string(),
   state: yup.array().of(yup.string()),
   zip: yup.string()

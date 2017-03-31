@@ -1,9 +1,9 @@
-import mailgunConstructor from 'mailgun-js'
-import templates from './templates'
-import mustache from 'mustache'
-import log from './log'
-import marked from 'marked'
-import htmlToText from 'html-to-text'
+const mailgunConstructor = require('mailgun-js')
+const templates = require('./templates')
+const mustache = require('mustache')
+const log = require('./log')
+const marked = require('marked')
+const htmlToText = require('html-to-text')
 
 const MailgunSingleton = mailgunConstructor({
   apiKey: process.env.MAILGUN_KEY,
@@ -43,4 +43,4 @@ class Mail {
   }
 }
 
-export default new Mail()
+module.exports = new Mail()
