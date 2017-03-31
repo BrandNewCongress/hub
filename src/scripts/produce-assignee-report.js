@@ -1,6 +1,6 @@
 const fs = require('fs')
 const monk = require('monk')
-const toAirCase = require('../airgoose/to-air-case').default
+const toAirCase = require('../airgoose/to-air-case')
 const db = monk(process.env.MONGODB_URI || 'localhost:27017/bnc')
 
 const Evaluations = db.get('Nominee Evaluations')
@@ -32,8 +32,8 @@ const sources = {}
 
 const query = {
   $or: [
-    '2017-02-26', '2017-02-27', '2017-02-28', '2017-03-01', '2017-03-02','2017-03-03'
-  ].map(evaluationDate => ({evaluationDate}))
+    '2017-02-26', '2017-02-27', '2017-02-28', '2017-03-01', '2017-03-02', '2017-03-03'
+  ].map(evaluationDate => ({ evaluationDate }))
 }
 
 let numBad = 0
@@ -57,15 +57,14 @@ People
 
     promises.push(new Promise((resolve, reject) =>
       Evaluations
-      .find({id: {$in: p.evaluations}})
+      .find({ id: { $in: p.evaluations } })
       .then(evaluations => {
-
         const individuals = p.evaluatorsPlainText.split(',').map(s => s.trim().toLowerCase().replace(/ /g, '-'))
         individuals.forEach(i => {
           if (!evaluators[i])
             evaluators[i] = []
 
-          evaluators[i].push(Object.assign(p, {evaluations}))
+          evaluators[i].push(Object.assign(p, { evaluations }))
         })
 
         resolve(null)

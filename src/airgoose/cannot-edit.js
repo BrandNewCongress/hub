@@ -6,4 +6,4 @@ const fields = [
 const e = {}
 fields.forEach(f => e[f] = undefined)
 
-export default e
+module.exports = e

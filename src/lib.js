@@ -1,8 +1,12 @@
-import log from './log'
-import { PhoneNumberFormat as PNF, PhoneNumberUtil } from 'google-libphonenumber'
-import normalizeUrl from 'normalize-url'
-import moment from 'moment'
+const log = require('./log')
+
+const { PhoneNumberFormat, PhoneNumberUtil } = require('google-libphonenumber')
+const PNF = PhoneNumberFormat
+
+const normalizeUrl = require('normalize-url')
+const moment = require('moment')
 const phoneUtil = PhoneNumberUtil.getInstance()
+
 const states = [
   {
     name: 'Alabama',
@@ -232,11 +236,13 @@ const states = [
 
 const atLargeStates = ['AK', 'DE', 'MT', 'ND', 'SD', 'VT', 'WY']
 
-export function toTitleCase(str) {
+const e = {}
+
+e.toTitleCase = function (str) {
   return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
 }
 
-export function isEmpty(val) {
+e.isEmpty = function (val) {
   if (typeof val === 'undefined' || val === null || (val.hasOwnProperty('trim') && val.trim() === '')) {
     return true
   }
@@ -246,7 +252,7 @@ export function isEmpty(val) {
   return false
 }
 
-export function formatDate(date) {
+e.formatDate = function (date) {
   if (isEmpty(date)) {
     return null
   }
@@ -257,21 +263,21 @@ export function formatDate(date) {
   return dateObj
 }
 
-export function formatEmail(email) {
+e.formatEmail = function (email) {
   if (isEmpty(email) || email.match('@') === null) {
     return null
   }
   return email.trim().toLowerCase()
 }
 
-export function formatText(text) {
+e.formatText = function (text) {
   if (isEmpty(text)) {
     return null
   }
   return text.trim()
 }
 
-export function formatPhoneNumber(number) {
+e.formatPhoneNumber = function (number) {
   if (isEmpty(number)) {
     return null
   }
@@ -285,7 +291,7 @@ export function formatPhoneNumber(number) {
   }
 }
 
-export function formatLink(link) {
+e.formatLink = function (link) {
   if (isEmpty(link)) {
     return null
   }
@@ -301,14 +307,14 @@ export function formatLink(link) {
   return null
 }
 
-export function capitalizeText(text) {
+e.capitalizeText = function (text) {
   if (isEmpty(text)) {
     return null
   }
   return toTitleCase(text.trim())
 }
 
-export function formatStateAbbreviation(state) {
+e.formatStateAbbreviation = function (state) {
   if (isEmpty(state)) {
     return null
   }
@@ -330,7 +336,7 @@ export function formatStateAbbreviation(state) {
   return null
 }
 
-export function formatDistrictCode(district) {
+e.formatDistrictCode = function (district) {
   if (isEmpty(district)) {
     return null
   }
@@ -351,7 +357,7 @@ export function formatDistrictCode(district) {
   return null
 }
 
-export function formatDistrict(stateAbbreviation, districtCode) {
+e.formatDistrict = function (stateAbbreviation, districtCode) {
   if (isEmpty(stateAbbreviation)) {
     return null
   }
@@ -365,7 +371,7 @@ export function formatDistrict(stateAbbreviation, districtCode) {
   return `${stateAbbreviation}-${districtCode}`
 }
 
-export function formatPoliticalParty(politicalParty) {
+e.formatPoliticalParty = function (politicalParty) {
   const validParties = [
     'Democrat',
     'Republican',
@@ -385,7 +391,7 @@ export function formatPoliticalParty(politicalParty) {
   return foundParty
 }
 
-export function formatSourceTeamName(teamName) {
+e.formatSourceTeamName = function (teamName) {
   const validTeams = [
     'BNC Staff',
     'Call Team',
@@ -404,3 +410,5 @@ export function formatSourceTeamName(teamName) {
   })
   return foundTeam
 }
+
+module.exports = e

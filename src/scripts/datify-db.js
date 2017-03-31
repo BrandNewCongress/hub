@@ -24,11 +24,11 @@ const datify = ([Model, dateField]) => new Promise((resolve, reject) => {
     Model
     .bulkWrite(documents.map(d => typeof d[dateField] == 'string'
       ? ({
-          updateOne: {
-            filter: {_id: d._id},
-            update: {$set: {[dateField]: new Date(d[dateField])}}
-          }
-        })
+        updateOne: {
+          filter: { _id: d._id },
+          update: { $set: { [dateField]: new Date(d[dateField]) } }
+        }
+      })
       : undefined
     ).filter(u => u))
     .then(_ => {

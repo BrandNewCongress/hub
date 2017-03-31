@@ -1,4 +1,4 @@
-import toAirCase from './to-air-case'
+const toAirCase = require('./to-air-case')
 
 const airify = (key, value) => Array.isArray(key)
     ? `{${toAirCase(key[0])}} = "${key[1]}"`

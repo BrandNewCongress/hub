@@ -4,7 +4,7 @@ This serves as the API that BNC web properties access for data. Currently being 
 
 ## Getting Started for Developers
 
-1. Install [Node](https://nodejs.org/en/)
+1. Install [Node](https://nodejs.org/en/). Make sure you have version 7+, we use `async` / `await`.
 2. Clone this repository
 2. Run `npm install`
 3. Run `npm run dev`

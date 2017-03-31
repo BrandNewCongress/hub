@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   Person: 'People',
   Evaluation: 'Nominee Evaluations',
   Nomination: 'Nominations',

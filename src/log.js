@@ -1,5 +1,5 @@
-import minilog from 'minilog'
-import rollbar from 'rollbar'
+const minilog = require('minilog')
+const rollbar = require('rollbar')
 
 function isClient() {
   return typeof window !== 'undefined'
@@ -53,4 +53,4 @@ if (isClient()) {
 }
 
 const log = logInstance
-export default log
+module.exports = log

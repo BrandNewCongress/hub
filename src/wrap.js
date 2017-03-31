@@ -1,7 +1,7 @@
 /* This is a function wrapper to correctly
  catch and handle uncaught exceptions in
  asynchronous code. */
-export default (fn) =>
+module.exports = (fn) =>
   (...args) =>
     fn(...args)
       .catch((ex) => {

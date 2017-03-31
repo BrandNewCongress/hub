@@ -1,5 +1,5 @@
-import path from 'path'
-import fs from 'fs'
+const path = require('path')
+const fs = require('fs')
 
 const StaticDirectory = path.join(process.cwd(), 'src/templates')
 const statics = {}
@@ -11,4 +11,4 @@ fs.readdirSync(StaticDirectory).forEach((file) => {
   }
 })
 
-export default statics
+module.exports = statics
