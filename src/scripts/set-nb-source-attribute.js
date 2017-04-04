@@ -3,16 +3,17 @@ const axios = require('axios')
 
 const waitASec = () => new Promise((resolve, reject) => setTimeout(() => resolve(true), 10000))
 
-const limit = 100
+const limit = 10
 
 const go = async () => {
   let response = await nb.makeRequest('GET', 'people')
   let { results, next } = response.data
 
   results.forEach((p) => console.log(p.source))
-  console.log('Setting all source to BNC')
-  await Promise.all(results.filter(r => !r.source).map(r => nb.makeRequest('PUT', `people/${r.id}`, {
-    person: {source: 'BNC'}
+  let shouldSet = results.filter(r => !r.source)
+  console.log(`Setting ${shouldSet.length} source to BNC`)
+  await Promise.all(shouldSet.map(r => nb.makeRequest('PUT', `people/${r.id}`, {
+    person: {source: 'Brand New Congress'}
   })))
   console.log('Done')
 
@@ -36,18 +37,19 @@ const go = async () => {
         if (!p.source)
           requestMade = true
       })
-  
+
       console.log(results[0].id)
 
-      console.log('Setting all source to BNC')
-      await Promise.all(results.filter(r => !r.source).map(r => nb.makeRequest('PUT', `people/${r.id}`, {
-        person: {source: 'BNC'}
+      let shouldSet = results.filter(r => !r.source)
+      console.log(`Setting ${shouldSet.length} source to BNC`)
+      await Promise.all(shouldSet.map(r => nb.makeRequest('PUT', `people/${r.id}`, {
+        person: {source: 'Brand New Congress'}
       })))
       console.log('Done')
 
-      if (requestMade) {
-        await waitASec()
-      }
+      // if (requestMade) {
+      //   await waitASec()
+      // }
 
     } catch (err) {
       // next = false
