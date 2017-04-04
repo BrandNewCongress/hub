@@ -57,13 +57,14 @@ const querify = (params, model) => {
 }
 
 metrics.get('/metrics/query', async (req, res) => {
+  console.log('/metrics/query')
   try {
     const {
       operation, model, attribute, secondaryAttribute
     } = req.query
 
     const query = {}
-    for (let key of req.query) {
+    for (let key of Object.keys(req.query)) {
       if (!['operation', 'model', 'attribute', 'secondaryAttribute'].includes(key))
         query[key] = req.query[key]
     }
