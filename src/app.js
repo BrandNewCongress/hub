@@ -108,7 +108,7 @@ app.post('/nominations', apiLog, async (req, res) => {
       name: stripBadPunc(body.nominatorName),
       email: body.nominatorEmail,
       phone: body.nominatorPhone,
-      tags: [source(req)],
+      tags: [`Source: ${source(req)}`],
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
@@ -177,7 +177,7 @@ app.post('/people', apiLog, async (req, res) => {
       address: {
         zip: body.zip
       },
-      tags: [source(req)],
+      tags: [`Source: ${source(req)}`],
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
@@ -228,7 +228,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
       tags.push(body.volunteerAvailability)
     }
 
-    tags.push(source(req))
+    tags.push(`Source: ${source(req)}`)
 
     const volunteerJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.volunteerName),
