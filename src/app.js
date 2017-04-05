@@ -108,7 +108,7 @@ app.post('/nominations', apiLog, async (req, res) => {
       name: stripBadPunc(body.nominatorName),
       email: body.nominatorEmail,
       phone: body.nominatorPhone,
-      source: source(req),
+      tags: [`Source: ${source(req)}`],
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
@@ -177,7 +177,7 @@ app.post('/people', apiLog, async (req, res) => {
       address: {
         zip: body.zip
       },
-      source: source(req),
+      tags: [`Source: ${source(req)}`],
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
@@ -213,6 +213,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
       state: body.volunteerState,
       zip: body.volunteerZip
     }
+
     let counter = 1
     addressLines.forEach((line) => {
       if (counter > 3) {
@@ -221,10 +222,14 @@ app.post('/volunteers', apiLog, async (req, res) => {
       address[`address${counter}`] = line
       counter = counter + 1
     })
+
     const tags = body.volunteerSkills
     if (body.volunteerAvailability) {
       tags.push(body.volunteerAvailability)
     }
+
+    tags.push(`Source: ${source(req)}`)
+
     const volunteerJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.volunteerName),
       email: body.volunteerEmail,
@@ -232,9 +237,9 @@ app.post('/volunteers', apiLog, async (req, res) => {
       address: Object.assign({}, address),
       linkedIn: body.volunteerLinkedIn,
       profile: body.volunteerProfile,
-      source: source(req),
       tags
     })
+
     await saveKueJob(volunteerJob)
     if (body.redirect) {
       res.redirect(body.redirect)
