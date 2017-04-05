@@ -28,7 +28,6 @@ class Nationbuilder {
     facebook,
     twitter,
     linkedIn,
-    source,
     utmSource,
     utmMedium,
     utmCampaign,
@@ -53,7 +52,6 @@ class Nationbuilder {
 
     const requestBody = {
       phone,
-      source,
       facebook_profile_url: facebookURL,
       twitter_login: twitterName,
       first_name: firstName,
