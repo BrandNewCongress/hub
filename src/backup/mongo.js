@@ -9,4 +9,4 @@ collections.forEach(obj => {
   e[c] = db.get(c)
 })
 
-module.exports = e e
+module.exports = e

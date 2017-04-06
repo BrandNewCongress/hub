@@ -1,4 +1,4 @@
-const airgoose from '../airgoose'
+const airgoose = require('../airgoose')
 const tl = require('../airgoose/tl')
 const mongo = require('./mongo')
 const collections = require('./collections')
