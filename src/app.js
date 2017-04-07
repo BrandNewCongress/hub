@@ -95,29 +95,33 @@ app.get('/teams', async (req, res) => {
   }
 })
 
-// const requiredFields = 'nominatorName nominatorEmail nominatorPhone nomineeName'.split(' ')
-const requiredFields = 'nomineeName'.split(' ')
-const isValidBody = body => requiredFields.filter(f => !body[f]).length == 0
+const fullFields = 'nominatorName nominatorEmail nominatorPhone nomineeName'.split(' ')
+const minimumFields = 'nomineeName'.split(' ')
+const isValidHalfBody = body => minimumFields.filter(f => !body[f]).length == 0
+const isValidFullBody = body => fullFields.filter(f => !body[f]).length == 0
 
 app.post('/nominations', apiLog, async (req, res) => {
   try {
     const body = req.body
-    if (!isValidBody(body)) {
+    if (!isValidHalfBody(body)) {
       log.error(`Not enough info for ${JSON.stringify(body)}`)
       res.sendStatus(400)
       return
     }
 
-    const createJob = queue.create('createPerson', {
-      name: stripBadPunc(body.nominatorName),
-      email: body.nominatorEmail,
-      phone: body.nominatorPhone,
-      tags: [`Source: ${source(req)}`],
-      utmSource: body.utmSource,
-      utmMedium: body.utmMedium,
-      utmCampaign: body.utmCampaign
-    })
-    await saveKueJob(createJob.attempts(3))
+    if (isValidFullBody(body)) {
+      const createJob = queue.create('createPerson', {
+        name: stripBadPunc(body.nominatorName),
+        email: body.nominatorEmail,
+        phone: body.nominatorPhone,
+        tags: [`Source: ${source(req)}`],
+        utmSource: body.utmSource,
+        utmMedium: body.utmMedium,
+        utmCampaign: body.utmCampaign
+      })
+
+      await saveKueJob(createJob.attempts(3))
+    }
 
     const nominationJob = queue.create('createNomination', {
       'Nominator Name': stripBadPunc(body.nominatorName),
