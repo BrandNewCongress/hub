@@ -95,10 +95,14 @@ app.get('/teams', async (req, res) => {
   }
 })
 
+// const requiredFields = 'nominatorName nominatorEmail nominatorPhone nomineeName'.split(' ')
+const requiredFields = 'nomineeName'.split(' ')
+const isValidBody = body => requiredFields.filter(f => !body[f]).length == 0
+
 app.post('/nominations', apiLog, async (req, res) => {
   try {
     const body = req.body
-    if (!body.nominatorName || !body.nominatorEmail || !body.nominatorPhone || !body.nomineeName) {
+    if (!isValidBody(body)) {
       log.error(`Not enough info for ${JSON.stringify(body)}`)
       res.sendStatus(400)
       return
