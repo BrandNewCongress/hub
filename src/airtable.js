@@ -340,24 +340,36 @@ class BNCAirtable {
       districtId = district ? district.id : null
     }
     progressFunc(30)
-    let nominator = await this.matchPerson({
-      emails: cleanedNomination.nominatorEmails,
-      phones: cleanedNomination.nominatorPhones
-    })
-    progressFunc(40)
-    nominator = await this.createOrUpdatePerson(nominator, {
-      name: cleanedNomination.nominatorName,
-      emails: cleanedNomination.nominatorEmails,
-      phones: cleanedNomination.nominatorPhones
-    })
-    progressFunc(50)
-    let submitter = await this.matchPerson({
-      emails: cleanedNomination.submitterEmails
-    })
-    progressFunc(60)
-    submitter = await this.createOrUpdatePerson(submitter, {
-      emails: cleanedNomination.submitterEmails
-    })
+
+    let nominator
+    try {
+      nominator = await this.matchPerson({
+        emails: cleanedNomination.nominatorEmails,
+        phones: cleanedNomination.nominatorPhones
+      })
+
+      progressFunc(40)
+
+      nominator = await this.createOrUpdatePerson(nominator, {
+        name: cleanedNomination.nominatorName,
+        emails: cleanedNomination.nominatorEmails,
+        phones: cleanedNomination.nominatorPhones
+      })
+
+      progressFunc(50)
+
+      let submitter = await this.matchPerson({
+        emails: cleanedNomination.submitterEmails
+      })
+
+      progressFunc(60)
+      submitter = await this.createOrUpdatePerson(submitter, {
+        emails: cleanedNomination.submitterEmails
+      })
+    } catch (err) {
+      console.log('No nominator information on form')
+    }
+
     progressFunc(70)
     let nominee = await this.matchPerson({
       emails: cleanedNomination.emails,
@@ -370,8 +382,8 @@ class BNCAirtable {
       stateId,
       districtId
     })
-    progressFunc(80)
 
+    progressFunc(80)
     if (nominee) {
       const person = await this.findById('People', nominee)
       const evaluations = person.get('Evaluations')
@@ -391,6 +403,7 @@ class BNCAirtable {
         }
       }
     }
+
     progressFunc(90)
     nominee = await this.createOrUpdatePerson(nominee, {
       emails: cleanedNomination.emails,
@@ -406,6 +419,7 @@ class BNCAirtable {
       stateId,
       districtId
     })
+
     progressFunc(95)
 
     let sourceTeam = null
@@ -413,13 +427,18 @@ class BNCAirtable {
       sourceTeam = await this.findOne('Teams', `LOWER({Name}) = "${this.escapeString(cleanedNomination.sourceTeamName.toLowerCase())}"`)
     }
 
-    const nominationToSubmit = Object.assign({}, nomination, {
+    const nominatorExists = submitter && nominator
+    const nominatorData = {}
+    if (nominatorExists) {
+      nominatorData.Submitter = [submitter.id]
+      nominatorData.Nominator = [nominator.id]
+    }
+
+    const nominationToSubmit = Object.assign({}, nomination, nominatorData, {
       State: stateId ? [stateId] : null,
       'Congressional District': districtId ? [districtId] : null,
       Person: [nominee.id],
       'Source Team': sourceTeam ? [sourceTeam.id] : null,
-      Submitter: [submitter.id],
-      Nominator: [nominator.id]
     })
 
     const createdNomination = await this.create('Nominations', nominationToSubmit)
