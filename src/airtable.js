@@ -342,6 +342,8 @@ class BNCAirtable {
     progressFunc(30)
 
     let nominator
+    let submitter
+  
     try {
       nominator = await this.matchPerson({
         emails: cleanedNomination.nominatorEmails,
@@ -358,7 +360,7 @@ class BNCAirtable {
 
       progressFunc(50)
 
-      let submitter = await this.matchPerson({
+      submitter = await this.matchPerson({
         emails: cleanedNomination.submitterEmails
       })
 
