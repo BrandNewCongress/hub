@@ -95,7 +95,7 @@ class BNCAirtable {
     twitter,
     name,
     city,
-    politicalParty,
+    currentPoliticalParty,
     stateId,
     districtId,
     profile,
@@ -110,7 +110,7 @@ class BNCAirtable {
         Facebook: facebook,
         LinkedIn: linkedin,
         Twitter: twitter,
-        'Political Party': politicalParty
+        'Current Political Party': currentPoliticalParty
       })
     }
 
@@ -127,8 +127,8 @@ class BNCAirtable {
     if (isEmpty(person.get('Twitter')) && twitter) {
       personFieldsToUpdate.Twitter = twitter
     }
-    if (isEmpty(person.get('Political Party')) && politicalParty) {
-      personFieldsToUpdate['Political Party'] = politicalParty
+    if (isEmpty(person.get('Current Political Party')) && currentPoliticalParty) {
+      personFieldsToUpdate['Current Political Party'] = currentPoliticalParty
     }
     if (isEmpty(person.get('Profile')) && profile) {
       personFieldsToUpdate['Profile'] = profile
@@ -325,7 +325,7 @@ class BNCAirtable {
       facebook: formatLink(rawNomination.Facebook),
       linkedIn: formatLink(rawNomination.LinkedIn),
       twitter: formatLink(rawNomination.Twitter),
-      politicalParty: formatPoliticalParty(rawNomination['Political Party']),
+      currentPoliticalParty: formatPoliticalParty(rawNomination['Current Political Party']),
       sourceTeamName: formatSourceTeamName(rawNomination['Source Team Name']),
       submitterEmails: [formatEmail(rawNomination['Submitter Email']) || formatEmail(rawNomination['Nominator Email'])]
     }
@@ -343,7 +343,7 @@ class BNCAirtable {
 
     let nominator
     let submitter
-  
+
     try {
       nominator = await this.matchPerson({
         emails: cleanedNomination.nominatorEmails,
@@ -415,7 +415,7 @@ class BNCAirtable {
       twitter: cleanedNomination.twitter,
       name: cleanedNomination.name,
       city: cleanedNomination.city,
-      politicalParty: cleanedNomination.politicalParty,
+      currentPoliticalParty: cleanedNomination.currentPoliticalParty,
       profile: cleanedNomination.profile,
       otherLinks: cleanedNomination.otherLinks,
       stateId,

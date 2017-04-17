@@ -150,7 +150,7 @@ app.post('/nominations', apiLog, async (req, res) => {
       'Work History': body.work,
       'Public Speaking': body.publicSpeaking,
       'Political Views': body.politicalViews,
-      'Political Party': body.politicalParty,
+      'Current Political Party': body.politicalParty,
       'Run for Office': body.runForOffice,
       'Office Run Results': body.officeRunResults,
       'Other Info': body.otherInfo,
