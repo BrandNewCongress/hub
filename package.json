@@ -15,7 +15,12 @@
     "dev-start": "nodemon ./src",
     "dev-worker": "nodemon ./src/worker.js",
     "kue-dashboard": "kue-dashboard -p 3050 -r $REDIS_URL",
-    "dev": "nf start -w --procfile ./dev-tools/Procfile.dev"
+    "dev": "nf start -w --procfile ./dev-tools/Procfile.dev",
+    "db:version": "node tools/db.js version",
+    "db:migrate": "node tools/db.js migrate",
+    "db:migrate:undo": "node tools/db.js migrate:undo",
+    "db:migration": "node tools/db.js migration",
+    "db:seed": "node tools/db.js seed"
   },
   "repository": {
     "type": "git",
@@ -41,6 +46,7 @@
     "body-parser": "^1.15.2",
     "bookshelf": "^0.10.3",
     "cors": "^2.8.1",
+    "debug": "^2.6.3",
     "dotenv": "^2.0.0",
     "eslint": "^2.9.0",
     "eslint-config-airbnb": "^9.0.1",
@@ -65,6 +71,7 @@
     "pg": "^6.1.5",
     "request-promise": "^4.1.1",
     "rollbar": "^0.6.2",
+    "sqlite3": "^3.1.8",
     "to-camel-case": "^1.0.0",
     "to-space-case": "^1.0.0",
     "xml2js": "^0.4.17",
