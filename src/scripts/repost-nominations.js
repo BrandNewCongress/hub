@@ -13,7 +13,7 @@ db.get('API Logs').find(query).then(posts => {
   posts.slice(posts.length - 5).forEach(p => {
     request
     .post('https://api.brandnewcongress.org/nominations')
-    .send(Object.assign(p.data, {source: 'brandnewcongress.org'})
+    .send(Object.assign(p.data, {forceSource: 'brandnewcongress.org'}))
     .end((err, res) => {
       console.log(`Success for ${JSON.stringify(p)}`)
     })
