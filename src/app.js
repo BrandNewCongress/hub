@@ -45,7 +45,7 @@ async function saveKueJob(job) {
 
 const stripBadPunc = str => str ? str.replace(/[",]/g, '') : str
 const source = (req) => {
-  if (req.body && req.body.source.match('brandnewcongress.org')) {
+  if (req.body && req.body.forceSource.match('brandnewcongress.org')) {
     return 'Brand New Congress'
   }
 
