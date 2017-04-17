@@ -8,11 +8,12 @@ const query = {
 
 db.get('API Logs').find(query).then(posts => {
   console.log(`Got ${posts.length} posts`)
+  // console.log(posts.slice(posts.length - 5))
 
-  posts.forEach(p => {
+  posts.slice(posts.length - 5).forEach(p => {
     request
     .post('https://api.brandnewcongress.org/nominations')
-    .send(p.data)
+    .send(Object.assign(p.data, {source: 'brandnewcongress.org'})
     .end((err, res) => {
       console.log(`Success for ${JSON.stringify(p)}`)
     })
