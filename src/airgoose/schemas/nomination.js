@@ -22,7 +22,7 @@ module.exports = yup.object().shape({
   districtInfo: yup.string(),
   source: yup.string(),
   submitterEmail: yup.string(),
-  politicalParty: yup.string(),
+  currentPoliticalParty: yup.string(),
   stateAbbreviation: yup.string(),
   congressionalDistrictCode: yup.string(),
   sourceTeamName: yup.string(),

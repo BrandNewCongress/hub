@@ -13,7 +13,7 @@ module.exports = yup.object().shape({
   assignment: yup.string(),
   /* ENUMS */
   gender: yup.string(),
-  politicalParty: yup.string(),
+  currentPoliticalParty: yup.string(),
   religion: yup.string(),
   /* MULTI-SELECT ENUMS */
   potentialVolunteer: yup.array().of(yup.string()),
