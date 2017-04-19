@@ -16,10 +16,10 @@ const {
 } = require('./lib')
 
 class BNCAirtable {
-  constructor() {
+  constructor(base) {
     this.base = new Airtable({
       apiKey: process.env.AIRTABLE_API_KEY
-    }).base(process.env.AIRTABLE_BASE)
+    }).base(base || process.env.AIRTABLE_BASE)
   }
 
   async findAll(table, filterOptions) {
@@ -451,4 +451,5 @@ class BNCAirtable {
 }
 
 const BNCAirtableSingleton = new BNCAirtable()
+BNCAirtableSingleton.BNCAirtable = BNCAirtable
 module.exports = BNCAirtableSingleton
