@@ -11,6 +11,7 @@ const basicAuth = require('basic-auth')
 const apps = require('./apps')
 const BSD = require('./bsd')
 const apiLog = require('./api-log')
+const asana = require('./asana')
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -326,6 +327,49 @@ app.get('/conference-calls/upcoming', async (request, response) => {
       response.sendStatus(200)
     }
   }
+})
+
+app.post('/hooks/work-request', async (request, response) => {
+  const body = request.body
+  const BNCAirtable = airtable.BNCAirtable
+  const teamsBase = new BNCAirtable(process.env.AIRTABLE_TEAMS_BASE)
+  const requester = await teamsBase.findById('People', body.Requestor)
+  const team = await teamsBase.findById('Teams', body.Team)
+  const requestingTeam = await teamsBase.findById('Teams', body['Requesting Team'])
+  const teamLeader = await teamsBase.findById('People', team.get('Team Leader'))
+  const asanaProjects = await asana.request('GET', 'projects')
+  const users = await asana.request('GET', 'users', {
+    params: { opt_fields: 'name,email' }
+  })
+  const requesterUser = users.data.data.filter((user) => user.email.toLowerCase() === requester.get('Email').toLowerCase())[0]
+  const teamLeaderUser = users.data.data.filter((user) => user.email.toLowerCase() === teamLeader.get('Email').toLowerCase())[0]
+  const tags = await asana.request('GET', 'tags')
+  const workRequestTag = tags.data.data.filter((tag) => tag.name === 'Work Request')[0]
+  const requesterProject = asanaProjects.data.data.filter((project) => project.name.toLowerCase() === requestingTeam.get('Name').toLowerCase())[0]
+  const project = asanaProjects.data.data.filter((proj) => proj.name.toLowerCase() === team.get('Name').toLowerCase())[0]
+  const newRequesterTask = await asana.request('POST', 'tasks', {
+    data: {
+      data: {
+        name: `Follow-up on WR: ${body.Name}`,
+        projects: [requesterProject.id],
+        assignee: requesterUser ? requesterUser.id : null,
+        due_at: body.Deadline
+      }
+    }
+  })
+  await asana.request('POST', 'tasks', {
+    data: {
+      data: {
+        name: body.Name,
+        projects: [project.id],
+        assignee: teamLeaderUser ? teamLeaderUser.id : null,
+        due_at: body.Deadline,
+        parent: newRequesterTask.data.data.id,
+        tags: workRequestTag ? [workRequestTag.id] : null
+      }
+    }
+  })
+  response.sendStatus(200)
 })
 
 app.listen(port, () => {
