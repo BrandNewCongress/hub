@@ -347,6 +347,20 @@ app.post('/hooks/work-request', async (request, response) => {
   const workRequestTag = tags.data.data.filter((tag) => tag.name === 'Work Request')[0]
   const requesterProject = asanaProjects.data.data.filter((project) => project.name.toLowerCase() === requestingTeam.get('Name').toLowerCase())[0]
   const project = asanaProjects.data.data.filter((proj) => proj.name.toLowerCase() === team.get('Name').toLowerCase())[0]
+  const ignoreKeys = ['id', 'Requesting Team', 'Description', 'Requestor', 'Deadline', 'Team', 'Name']
+  let otherDetails = Object.keys(body).map((key) => {
+    if (key[0] === '_' || ignoreKeys.indexOf(key) !== -1) {
+      return null
+    } else {
+      return `${key}: ${body[key]}`
+    }
+  }).filter((ele) => ele !== null)
+  const description = `
+Requesting Team: ${requestingTeam.get('Name')}
+Requester: ${requester.get('Name')}
+Details: ${body.Description}
+${otherDetails.join('\n')}
+  `
   const newRequesterTask = await asana.request('POST', 'tasks', {
     data: {
       data: {
@@ -365,7 +379,8 @@ app.post('/hooks/work-request', async (request, response) => {
         assignee: teamLeaderUser ? teamLeaderUser.id : null,
         due_at: body.Deadline,
         parent: newRequesterTask.data.data.id,
-        tags: workRequestTag ? [workRequestTag.id] : null
+        tags: workRequestTag ? [workRequestTag.id] : null,
+        notes: description
       }
     }
   })
