@@ -363,7 +363,7 @@ ${otherDetails.join('\n')}
     data: {
       data: {
         name: `Follow-up on WR: ${body.Name}`,
-        projects: [requesterProject.id],
+        projects: [requesterProject],
         assignee: requesterUser ? requesterUser.id : null,
         due_at: body.Deadline
       }
@@ -373,7 +373,7 @@ ${otherDetails.join('\n')}
     data: {
       data: {
         name: body.Name,
-        projects: [project.id],
+        projects: [project],
         assignee: teamLeaderUser ? teamLeaderUser.id : null,
         due_at: body.Deadline,
         parent: newRequesterTask.data.data.id,
