@@ -337,23 +337,21 @@ app.post('/hooks/work-request', async (request, response) => {
   const team = await teamsBase.findById('Teams', body.Team)
   const requestingTeam = await teamsBase.findById('Teams', body['Requesting Team'])
   const teamLeader = await teamsBase.findById('People', team.get('Team Leader'))
-  const asanaProjects = await asana.request('GET', 'projects')
   const users = await asana.request('GET', 'users', {
-    params: { opt_fields: 'name,email' }
+    params: { opt_fields: 'email' }
   })
   const requesterUser = users.data.data.filter((user) => user.email.toLowerCase() === requester.get('Email').toLowerCase())[0]
   const teamLeaderUser = users.data.data.filter((user) => user.email.toLowerCase() === teamLeader.get('Email').toLowerCase())[0]
   const tags = await asana.request('GET', 'tags')
   const workRequestTag = tags.data.data.filter((tag) => tag.name === 'Work Request')[0]
-  const requesterProject = asanaProjects.data.data.filter((project) => project.name.toLowerCase() === requestingTeam.get('Name').toLowerCase())[0]
-  const project = asanaProjects.data.data.filter((proj) => proj.name.toLowerCase() === team.get('Name').toLowerCase())[0]
+  const requesterProject = parseInt(requestingTeam.get('Asana Project').split('/').slice(-1)[0], 10)
+  const project = parseInt(team.get('Asana Project').split('/').slice(-1)[0], 10)
   const ignoreKeys = ['id', 'Requesting Team', 'Description', 'Requestor', 'Deadline', 'Team', 'Name']
-  let otherDetails = Object.keys(body).map((key) => {
+  const otherDetails = Object.keys(body).map((key) => {
     if (key[0] === '_' || ignoreKeys.indexOf(key) !== -1) {
       return null
-    } else {
-      return `${key}: ${body[key]}`
     }
+    return `${key}: ${body[key]}`
   }).filter((ele) => ele !== null)
   const description = `
 Requesting Team: ${requestingTeam.get('Name')}
