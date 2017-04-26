@@ -8,9 +8,9 @@ const query = {
 
 db.get('API Logs').find(query).then(posts => {
   console.log(`Got ${posts.length} posts`)
-  // console.log(posts.slice(posts.length - 5))
+  console.log(posts.slice(posts.length - 1))
 
-  posts.slice(posts.length - 5).forEach(p => {
+  posts.slice(posts.length - 1).forEach(p => {
     request
     .post('https://api.brandnewcongress.org/nominations')
     .send(Object.assign(p.data, {forceSource: 'brandnewcongress.org'}))
