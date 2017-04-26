@@ -244,7 +244,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
       counter = counter + 1
     })
 
-    const tags = body.volunteerSkills
+    const tags = body.volunteerSkills.concat(body.volunteerFrequency || [])
     if (body.volunteerAvailability) {
       tags.push(body.volunteerAvailability)
     }

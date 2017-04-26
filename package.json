@@ -58,6 +58,7 @@
     "moment-timezone": "^0.5.11",
     "monk": "^4.0.0",
     "mustache": "^2.3.0",
+    "nation-pool": "github:brandnewcongress/nation-pool",
     "nodemon": "^1.9.2",
     "normalize-url": "^1.8.0",
     "request-promise": "^4.1.1",
