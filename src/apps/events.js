@@ -32,8 +32,8 @@ events.get('/events', async (req, res) => {
   return res.json(results.results.map(e => ({
     url: `http://go.brandnewcongress.org${e.path}`,
     title: e.headline,
-    startTime: e.start_time,
-    endTime: e.end_time,
+    startTime: new Date(e.start_time).toISOString(),
+    endTime: new Date(e.end_time).toISOString(),
     timeZone: e.time_zone,
     venue: e.venue
   })).sort((a, b) => new Date(a.startTime) - new Date(b.startTime)))
