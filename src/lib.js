@@ -410,8 +410,26 @@ function formatSourceTeamName (teamName) {
   return foundTeam
 }
 
+const bodyRequired = fields => (req, res, next) => {
+  const required = fields.split(' ')
+  if (!req.body) {
+    return res.status(400).json({ error: 'Missing body' })
+  }
+
+  for (const f of required) {
+    if (req.body[f] === undefined) {
+      return res.status(400).json({
+        error: 'Missing field',
+        field: f
+      })
+    }
+  }
+
+  return next()
+}
+
 module.exports = {
   formatSourceTeamName, formatPoliticalParty, formatDistrict, formatDistrictCode,
   formatStateAbbreviation, capitalizeText, formatLink, formatPhoneNumber, formatText,
-  formatEmail, formatDate, isEmpty, toTitleCase
+  formatEmail, formatDate, isEmpty, toTitleCase, bodyRequired
 }
