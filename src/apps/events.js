@@ -54,6 +54,7 @@ events.get('/events', async (req, res) => {
 
     return res.json(
       results.results
+        .filter(e => e.venue.address)
         .map(e => ({
           id: e.id,
           url: `http://go.brandnewcongress.org${e.path}`,
