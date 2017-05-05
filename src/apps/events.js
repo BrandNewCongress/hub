@@ -40,7 +40,8 @@ events.get('/events', async (req, res) => {
     const today = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
 
     const query = {
-      starting: today
+      starting: today,
+      limit: 100
     }
 
     if (calendarId) {
