@@ -2,22 +2,10 @@ const express = require('express')
 const cors = require('cors')
 const client = require('nation-pool/client')
 client.forceStandalone()
-const { bodyRequired } = require('../lib')
-const log = require('../log')
-
-const candidateMap = {
-  coribush: 6
-}
-
-const calendarMap = Object.keys(candidateMap).reduce(
-  (acc, candidate) =>
-    Object.assign(acc, { [candidateMap[candidate]]: candidate }),
-  {}
-)
-
-const originMap = {
-  'votecoribush.com': 6
-}
+const { bodyRequired } = require('../../lib')
+const log = require('../../log')
+const format = require('./format')
+const { candidateMap, calendarMap, originMap } = require('./data')
 
 const events = express()
 events.use(cors())
@@ -55,16 +43,7 @@ events.get('/events', async (req, res) => {
     return res.json(
       results.results
         .filter(e => e.venue.address)
-        .map(e => ({
-          id: e.id,
-          url: `http://go.brandnewcongress.org${e.path}`,
-          title: e.headline,
-          startTime: new Date(e.start_time).toISOString(),
-          endTime: new Date(e.end_time).toISOString(),
-          timeZone: e.time_zone,
-          venue: e.venue,
-          candidate: calendarMap[e.calendar_id]
-        }))
+        .map(format.event)
         .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
     )
   } catch (err) {
