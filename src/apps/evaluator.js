@@ -54,7 +54,7 @@ evaluator.get('/assignments/done', (req, res) => {
 evaluator.put('/person/:id', (req, res) => {
   Person
   .update(req.params.id, req.body)
-  .then(_ => {
+  .then(() => {
     Person
     .findById(req.params.id)
     .populate('evaluations nominations district')
