@@ -45,18 +45,28 @@ async function saveKueJob(job) {
 }
 
 const stripBadPunc = str => str ? str.replace(/[",]/g, '') : str
+
+const sourceMap = {
+  'brandnewcongress.org': 'Brand New Congress',
+  'justicedemocrats.com': 'Justice Democrats',
+  'votecoribush.com': 'Cori Bush',
+  'paulajean2018.com': 'Paula Jean'
+}
+
 const source = (req) => {
-  if (req.body && req.body.forceSource && req.body.forceSource.match('brandnewcongress.org')) {
-    return 'Brand New Congress'
+  let toMatch = null
+
+  if (req.body && req.body.forceSource) {
+    toMatch = req.body.forceSource
+  } else {
+    toMatch = req.headers.origin
   }
 
-  if (req.headers.origin.match('brandnewcongress.org')) {
-    return 'Brand New Congress'
-  } else if (req.headers.origin.match('justicedemocrats.com')) {
-    return 'Justice Democrats'
-  } else if (req.headers.origin.match('votecoribush.com')) {
-    return 'Cori Bush'
+  let result = null
+  for (const domain in sourceMap) {
+    if (toMatch.match(domain)) return sourceMap[domain]
   }
+  
   return 'Brand New Congress'
 }
 
