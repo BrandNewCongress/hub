@@ -34,7 +34,7 @@ const port = process.env.PORT
 
 async function saveKueJob(job) {
   return new Promise((resolve, reject) => {
-    job.removeOnComplete(true).save((err) => {
+    job.removeOnComplete(true).save(err => {
       if (err) {
         log.error(err)
         reject(err)
@@ -44,7 +44,7 @@ async function saveKueJob(job) {
   })
 }
 
-const stripBadPunc = str => str ? str.replace(/[",]/g, '') : str
+const stripBadPunc = str => (str ? str.replace(/[",]/g, '') : str)
 
 const sourceMap = {
   'brandnewcongress.org': 'Brand New Congress',
@@ -53,7 +53,7 @@ const sourceMap = {
   'paulajean2018.com': 'Paula Jean'
 }
 
-const source = (req) => {
+const source = req => {
   let toMatch = null
 
   if (req.body && req.body.forceSource) {
@@ -66,7 +66,7 @@ const source = (req) => {
   for (const domain in sourceMap) {
     if (toMatch.match(domain)) return sourceMap[domain]
   }
-  
+
   return 'Brand New Congress'
 }
 
@@ -90,13 +90,21 @@ apps.forEach(a => {
 })
 
 app.get('/cons_group/:id/count', async (req, res) => {
-  const bsd = new BSD(process.env.BSD_API_URL, process.env.BSD_API_ID, process.env.BSD_API_SECRET)
+  const bsd = new BSD(
+    process.env.BSD_API_URL,
+    process.env.BSD_API_ID,
+    process.env.BSD_API_SECRET
+  )
   const consGroup = await bsd.getConstituentGroup(req.params.id)
   res.send({ count: consGroup.members })
 })
 
 app.get('/forms/:id/count', async (req, res) => {
-  const bsd = new BSD(process.env.BSD_API_URL, process.env.BSD_API_ID, process.env.BSD_API_SECRET)
+  const bsd = new BSD(
+    process.env.BSD_API_URL,
+    process.env.BSD_API_ID,
+    process.env.BSD_API_SECRET
+  )
   const formCount = await bsd.getFormSignupCount(req.params.id)
   res.send({ count: formCount })
 })
@@ -104,7 +112,7 @@ app.get('/forms/:id/count', async (req, res) => {
 app.get('/teams', async (req, res) => {
   try {
     let teams = await airtable.findAll('Teams')
-    teams = teams.map((team) => ({
+    teams = teams.map(team => ({
       name: team.get('Name')
     }))
     res.send(JSON.stringify(teams))
@@ -118,7 +126,9 @@ app.get('/teams', async (req, res) => {
   }
 })
 
-const fullFields = 'nominatorName nominatorEmail nominatorPhone nomineeName'.split(' ')
+const fullFields = 'nominatorName nominatorEmail nominatorPhone nomineeName'.split(
+  ' '
+)
 const minimumFields = 'nomineeName'.split(' ')
 const isValidHalfBody = body => minimumFields.filter(f => !body[f]).length == 0
 const isValidFullBody = body => fullFields.filter(f => !body[f]).length == 0
@@ -218,7 +228,12 @@ app.post('/people', apiLog, async (req, res) => {
     if (req.headers.origin === 'https://justicedemocrats.com') {
       signupTemplate = 'jd-signup'
     }
-    await mail.sendEmailTemplate(body.email, 'Thanks for signing up. This is what you can do now.', signupTemplate, { name: 'Friend' })
+    await mail.sendEmailTemplate(
+      body.email,
+      'Thanks for signing up. This is what you can do now.',
+      signupTemplate,
+      { name: 'Friend' }
+    )
 
     if (body.redirect) {
       res.redirect(body.redirect)
@@ -238,7 +253,9 @@ app.post('/people', apiLog, async (req, res) => {
 app.post('/volunteers', apiLog, async (req, res) => {
   try {
     const body = req.body
-    const addressLines = body.volunteerAddress ? body.volunteerAddress.split('\n') : []
+    const addressLines = body.volunteerAddress
+      ? body.volunteerAddress.split('\n')
+      : []
     const address = {
       city: body.volunteerCity,
       state: body.volunteerState,
@@ -246,7 +263,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
     }
 
     let counter = 1
-    addressLines.forEach((line) => {
+    addressLines.forEach(line => {
       if (counter > 3) {
         return
       }
@@ -290,7 +307,16 @@ app.post('/volunteers', apiLog, async (req, res) => {
 app.get('/people/count', async (req, res) => {
   try {
     let response = null
-    response = await axios.get(`https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`, { headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, validateStatus: () => true })
+    response = await axios.get(
+      `https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`,
+      {
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        },
+        validateStatus: () => true
+      }
+    )
     if (response) {
       res.send({ count: response.data.people_count })
     } else {
@@ -308,14 +334,18 @@ app.get('/people/count', async (req, res) => {
 
 app.get('/conference-calls/upcoming', async (request, response) => {
   try {
-    const name = (typeof request.query.name === 'undefined') ? '' : unescape(request.query.name)
+    const name = typeof request.query.name === 'undefined'
+      ? ''
+      : unescape(request.query.name)
     const upcomingConferences = {
       conferences: []
     }
 
     const upcomingConferenceIds = await maestro.getUpcomingConferences(name)
     for (let index = 0; index < upcomingConferenceIds.length; index++) {
-      const conferenceData = await maestro.getConferenceData(upcomingConferenceIds[index])
+      const conferenceData = await maestro.getConferenceData(
+        upcomingConferenceIds[index]
+      )
       const newMaestroConference = maestro.formattedData(conferenceData)
       upcomingConferences.conferences.push(newMaestroConference)
     }
@@ -345,24 +375,49 @@ app.post('/hooks/work-request', async (request, response) => {
   const teamsBase = new BNCAirtable(process.env.AIRTABLE_TEAMS_BASE)
   const requester = await teamsBase.findById('People', body.Requestor)
   const team = await teamsBase.findById('Teams', body.Team)
-  const requestingTeam = await teamsBase.findById('Teams', body['Requesting Team'])
+  const requestingTeam = await teamsBase.findById(
+    'Teams',
+    body['Requesting Team']
+  )
   const teamLeader = await teamsBase.findById('People', team.get('Team Leader'))
   const users = await asana.request('GET', 'users', {
     params: { opt_fields: 'email' }
   })
-  const requesterUser = users.data.data.filter((user) => user.email.toLowerCase() === requester.get('Email').toLowerCase())[0]
-  const teamLeaderUser = users.data.data.filter((user) => user.email.toLowerCase() === teamLeader.get('Email').toLowerCase())[0]
+  const requesterUser = users.data.data.filter(
+    user => user.email.toLowerCase() === requester.get('Email').toLowerCase()
+  )[0]
+  const teamLeaderUser = users.data.data.filter(
+    user => user.email.toLowerCase() === teamLeader.get('Email').toLowerCase()
+  )[0]
   const tags = await asana.request('GET', 'tags')
-  const workRequestTag = tags.data.data.filter((tag) => tag.name === 'Work Request')[0]
-  const requesterProject = parseInt(requestingTeam.get('Asana Project').split('/').slice(-1)[0], 10)
-  const project = parseInt(team.get('Asana Project').split('/').slice(-1)[0], 10)
-  const ignoreKeys = ['id', 'Requesting Team', 'Description', 'Requestor', 'Deadline', 'Team', 'Name']
-  const otherDetails = Object.keys(body).map((key) => {
-    if (key[0] === '_' || ignoreKeys.indexOf(key) !== -1) {
-      return null
-    }
-    return `${key}: ${body[key]}`
-  }).filter((ele) => ele !== null)
+  const workRequestTag = tags.data.data.filter(
+    tag => tag.name === 'Work Request'
+  )[0]
+  const requesterProject = parseInt(
+    requestingTeam.get('Asana Project').split('/').slice(-1)[0],
+    10
+  )
+  const project = parseInt(
+    team.get('Asana Project').split('/').slice(-1)[0],
+    10
+  )
+  const ignoreKeys = [
+    'id',
+    'Requesting Team',
+    'Description',
+    'Requestor',
+    'Deadline',
+    'Team',
+    'Name'
+  ]
+  const otherDetails = Object.keys(body)
+    .map(key => {
+      if (key[0] === '_' || ignoreKeys.indexOf(key) !== -1) {
+        return null
+      }
+      return `${key}: ${body[key]}`
+    })
+    .filter(ele => ele !== null)
   const description = `
 Requesting Team: ${requestingTeam.get('Name')}
 Requester: ${requester.get('Name')}
