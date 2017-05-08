@@ -1,5 +1,6 @@
 const candidateMap = {
-  coribush: 6
+  coribush: 6,
+  paulajean: 7
 }
 
 const calendarMap = Object.keys(candidateMap).reduce(
@@ -9,7 +10,8 @@ const calendarMap = Object.keys(candidateMap).reduce(
 )
 
 const originMap = {
-  'votecoribush.com': 6
+  'votecoribush.com': 6,
+  'paulajean2018.com': 7
 }
 
 module.exports = { candidateMap, calendarMap, originMap }
