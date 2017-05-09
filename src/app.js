@@ -238,10 +238,12 @@ app.post('/people', apiLog, async (req, res) => {
       body.email,
       'Thanks for signing up. This is what you can do now.',
       signupTemplate,
-      { name: 'friend' },
-      electTarget: source == 'Brand New Congress'
-        ? 'a Brand New Congress'
-        : `${source} and a Brand New Congress!`
+      {
+        name: 'friend',
+        electTarget: source == 'Brand New Congress'
+          ? 'a Brand New Congress'
+          : `${source} and a Brand New Congress!`
+      }
     )
 
     if (body.redirect) {
