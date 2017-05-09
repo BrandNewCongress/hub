@@ -239,10 +239,7 @@ app.post('/people', apiLog, async (req, res) => {
       'Thanks for signing up. This is what you can do now.',
       signupTemplate,
       {
-        name: 'friend',
-        electTarget: source == 'Brand New Congress'
-          ? 'a Brand New Congress'
-          : `${source} and a Brand New Congress!`
+        name: 'friend'
       }
     )
 
