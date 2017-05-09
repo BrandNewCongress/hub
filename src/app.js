@@ -211,6 +211,9 @@ app.post('/nominations', apiLog, async (req, res) => {
 app.post('/people', apiLog, async (req, res) => {
   try {
     const body = req.body
+
+    const signupSource = source(req)
+
     const createJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.fullName),
       email: body.email,
@@ -218,21 +221,27 @@ app.post('/people', apiLog, async (req, res) => {
       address: {
         zip: body.zip
       },
-      tags: [`Source: ${source(req)}`],
+      tags: [`Source: ${signupSource}`],
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
     })
+
     await saveKueJob(createJob.attempts(3))
+
     let signupTemplate = 'bnc-signup'
     if (req.headers.origin === 'https://justicedemocrats.com') {
       signupTemplate = 'jd-signup'
     }
+
     await mail.sendEmailTemplate(
       body.email,
       'Thanks for signing up. This is what you can do now.',
       signupTemplate,
-      { name: 'Friend' }
+      { name: 'friend' },
+      electTarget: source == 'Brand New Congress'
+        ? 'a Brand New Congress'
+        : `${source} and a Brand New Congress!`
     )
 
     if (body.redirect) {
