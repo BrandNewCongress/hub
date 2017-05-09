@@ -234,13 +234,16 @@ app.post('/people', apiLog, async (req, res) => {
       signupTemplate = 'jd-signup'
     }
 
+    const name = 'friend'
+    const electTarget = signupSource == 'Brand New Congress'
+      ? 'a Brand New Congress'
+      : `${signupSource} and a Brand New Congress!`
+
     await mail.sendEmailTemplate(
       body.email,
       'Thanks for signing up. This is what you can do now.',
       signupTemplate,
-      {
-        name: 'friend'
-      }
+      { name, electTarget }
     )
 
     if (body.redirect) {
