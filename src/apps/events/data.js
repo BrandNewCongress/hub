@@ -1,17 +1,32 @@
-const candidateMap = {
-  coribush: 6,
-  paulajean: 7
-}
-
-const calendarMap = Object.keys(candidateMap).reduce(
-  (acc, candidate) =>
-    Object.assign(acc, { [candidateMap[candidate]]: candidate }),
+const reverseMap = map => Object.keys(map).reduce(
+  (acc, key) =>
+    Object.assign(acc, { [map[key]]: key }),
   {}
 )
 
-const originMap = {
-  'votecoribush.com': 6,
-  'paulajean2018.com': 7
+const slugToName = {
+  coribush: 'Cori Bush',
+  paulajean: 'Paula Jean Swearengin',
+  brandnewcongress: 'General Brand New Congress'
 }
 
-module.exports = { candidateMap, calendarMap, originMap }
+const nameToSlug = reverseMap(slugToName)
+
+const candidateToCalendar = {
+  coribush: 6,
+  paulajean: 7,
+  brandnewcongress: 9
+}
+
+const calendarToCandidate = reverseMap(candidateToCalendar)
+
+module.exports = {
+  nameMap: {
+    fromSlug: nameToSlug,
+    toSlug: slugToName
+  },
+  calendarMap: {
+    fromCandidate: candidateToCalendar,
+    toCandidate: calendarToCandidate
+  }
+}

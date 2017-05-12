@@ -12,6 +12,7 @@ const apps = require('./apps')
 const BSD = require('./bsd')
 const apiLog = require('./api-log')
 const asana = require('./asana')
+const sourceMap = require('./source-map')
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -45,13 +46,6 @@ async function saveKueJob(job) {
 }
 
 const stripBadPunc = str => (str ? str.replace(/[",]/g, '') : str)
-
-const sourceMap = {
-  'brandnewcongress.org': 'Brand New Congress',
-  'justicedemocrats.com': 'Justice Democrats',
-  'votecoribush.com': 'Cori Bush',
-  'paulajean2018.com': 'Paula Jean'
-}
 
 const source = req => {
   let toMatch = null
@@ -129,6 +123,7 @@ app.get('/teams', async (req, res) => {
 const fullFields = 'nominatorName nominatorEmail nominatorPhone nomineeName'.split(
   ' '
 )
+
 const minimumFields = 'nomineeName'.split(' ')
 const isValidHalfBody = body => minimumFields.filter(f => !body[f]).length == 0
 const isValidFullBody = body => fullFields.filter(f => !body[f]).length == 0
