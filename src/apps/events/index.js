@@ -86,7 +86,7 @@ events.post(
   ),
   async (req, res) => {
     try {
-      const candidate = candidateMap.fromSlug[req.query.candidate]
+      const candidate = nameMap.fromSlug[req.query.candidate]
       const calendarId = candidate
         ? calendarMap.fromCandidate[candidate]
         : false
