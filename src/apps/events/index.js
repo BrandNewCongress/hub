@@ -5,7 +5,7 @@ client.forceStandalone()
 const { bodyRequired } = require('../../lib')
 const log = require('../../log')
 const format = require('./format')
-const { candidateMap, calendarMap, originMap } = require('./data')
+const { nameMap, calendarMap } = require('./data')
 
 const events = express()
 events.use(cors())
@@ -22,7 +22,9 @@ events.use(cors())
 events.get('/events', async (req, res) => {
   try {
     const calendarId =
-      candidateMap[req.query.candidate] || originMap[req.headers.origin]
+      calendarMap.fromCandidate[
+        req.query.candidate ? req.query.candidate.toLowerCase() : ''
+      ]
 
     const date = new Date()
     const today = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
@@ -34,6 +36,12 @@ events.get('/events', async (req, res) => {
 
     if (calendarId) {
       Object.assign(query, { calendar_id: calendarId })
+    } else {
+      if (req.query.candidate) {
+        return res
+          .status(400)
+          .json({ error: `Invalid 'candidate' ${req.query.candidate}` })
+      }
     }
 
     const results = await client.get('sites/brandnewcongress/pages/events', {
@@ -61,7 +69,7 @@ events.get('/events', async (req, res) => {
  */
 
 events.get('/events/candidates', (req, res) => {
-  const candidates = Object.keys(candidateMap)
+  const candidates = Object.keys(nameMap.toSlug).map(key => nameMap.toSlug[key])
   return res.json(candidates)
 })
 
@@ -78,8 +86,10 @@ events.post(
   ),
   async (req, res) => {
     try {
-      const candidate = req.query.candidate || req.headers.origin
-      const calendarId = req.body.calendarId || candidateMap[candidate]
+      const candidate = candidateMap.fromSlug[req.query.candidate]
+      const calendarId = candidate
+        ? calendarMap.fromCandidate[candidate]
+        : false
 
       if (!calendarId) {
         return res
