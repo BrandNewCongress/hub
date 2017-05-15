@@ -16,5 +16,5 @@ module.exports = [
   ['ericterrell', 'Eric Terrell'],
   ['adrienneebell', 'Adriene Bell'],
   ['alexandriaocasio', 'Alexandra Ocasio'],
-  ['brandnewcongress', 'General Brand New Congress']
+  ['brandnewcongress', 'Brand New Congress']
 ]
