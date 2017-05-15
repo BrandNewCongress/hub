@@ -59,11 +59,11 @@ const source = req => {
   }
 
   let result = null
-  for (const slug in sourceMap) {
-    if (toMatch.match(slug)) return sourceMap[slug]
-  }
+  sourceMap.forEach(([slug, name]) => {
+    if (result == null && toMatch.match(slug)) result = name
+  })
 
-  return 'Brand New Congress'
+  return result ? result : 'Brand New Congress'
 }
 
 app.enable('trust proxy')
