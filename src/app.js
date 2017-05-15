@@ -60,7 +60,7 @@ const source = req => {
 
   let result = null
   sourceMap.forEach(([slug, name]) => {
-    if (result == null && toMatch.match(slug)) result = name
+    if (result == null && toMatch && toMatch.match(slug)) result = name
   })
 
   return result ? result : 'Brand New Congress'
@@ -264,6 +264,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
     const addressLines = body.volunteerAddress
       ? body.volunteerAddress.split('\n')
       : []
+
     const address = {
       city: body.volunteerCity,
       state: body.volunteerState,
@@ -279,7 +280,9 @@ app.post('/volunteers', apiLog, async (req, res) => {
       counter = counter + 1
     })
 
-    const tags = body.volunteerSkills.concat(body.volunteerFrequency || [])
+    const tags = (body.volunteerSkills || [])
+      .concat(body.volunteerFrequency || [])
+
     if (body.volunteerAvailability) {
       tags.push(body.volunteerAvailability)
     }
