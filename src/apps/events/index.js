@@ -50,7 +50,7 @@ events.get('/events', async (req, res) => {
 
     return res.json(
       results.results
-        .filter(e => e.venue.address)
+        .filter(e => e.venue.address && e.status != 'unlisted')
         .map(format.event)
         .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
     )
@@ -105,6 +105,15 @@ events.post(
         phone: req.body.host_phone
       })
 
+      // format venue
+      const { name, city, state } = req.body.venue
+      const address = {
+        address1: req.body.venue.address,
+        city,
+        state
+      }
+      const venue = { name, address }
+
       // fill in defaults, set host as author_id, and mark it part of the proper calendar
       const event = Object.assign({}, req.body, {
         rsvp_form: {
@@ -114,10 +123,7 @@ events.post(
           gather_volunteers: true,
           allow_guests: true
         },
-        venue: Object.assign(req.body.venue, {
-          address1: req.body.venue.address,
-          address: undefined
-        }),
+        venue: venue,
         status: 'unlisted',
         show_guests: false,
         calendar_id: calendarId,
@@ -132,6 +138,7 @@ events.post(
       return res.json(results.event)
     } catch (err) {
       log.error(err)
+      console.log(err)
       return res
         .status(400)
         .json(err.response && err.response.body ? err.response.body : err)
