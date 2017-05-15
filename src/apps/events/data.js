@@ -17,6 +17,8 @@ const slugToName = {
   chardorichardson: 'Chardo Richardon',
   dannyellyson: 'Danny Ellyson',
   ericterrell: 'Eric Terrell',
+  adrienneebell: 'Adriene Bell',
+  alexandriaocasio: 'Alexandra Ocasio',
   brandnewcongress: 'General Brand New Congress'
 }
 
@@ -25,6 +27,7 @@ const nameToSlug = reverseMap(slugToName)
 const candidateToCalendar = {
   coribush: 6,
   paulajean: 7,
+  alexandriaocasio: 8,
   brandnewcongress: 9,
   dannyellyson: 10,
   chardorichardson: 11,
@@ -35,7 +38,8 @@ const candidateToCalendar = {
   anthonyclark: 16,
   letitiaplummer: 17,
   ericterrell: 18,
-  sarahsmith: 19
+  sarahsmith: 19,
+  adrienneebell: 20
 }
 
 const calendarToCandidate = reverseMap(candidateToCalendar)

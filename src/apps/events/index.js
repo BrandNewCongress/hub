@@ -50,6 +50,13 @@ events.get('/events', async (req, res) => {
 
     return res.json(
       results.results
+        .map(e => {
+          if (e.name.includes('Test')) {
+            console.log(e.name)
+            console.log(e.calendar_id)
+          }
+          return e
+        })
         .filter(e => e.venue.address && e.status != 'unlisted')
         .map(format.event)
         .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))

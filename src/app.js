@@ -52,13 +52,15 @@ const source = req => {
 
   if (req.body && req.body.forceSource) {
     toMatch = req.body.forceSource
+  } else if (req.body && req.body.candidate) {
+    toMatch = req.body.candidate
   } else {
     toMatch = req.headers.origin
   }
 
   let result = null
-  for (const domain in sourceMap) {
-    if (toMatch.match(domain)) return sourceMap[domain]
+  for (const slug in sourceMap) {
+    if (toMatch.match(slug)) return sourceMap[slug]
   }
 
   return 'Brand New Congress'
