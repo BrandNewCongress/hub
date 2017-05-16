@@ -3,9 +3,10 @@ const cors = require('cors')
 const client = require('nation-pool/client')
 client.forceStandalone()
 const { bodyRequired } = require('../../lib')
+const mail = require('../../mail')
 const log = require('../../log')
 const format = require('./format')
-const { nameMap, calendarMap } = require('./data')
+const { nameMap, calendarMap, followers } = require('./data')
 
 const events = express()
 events.use(cors())
@@ -112,6 +113,7 @@ events.post(
         city,
         state
       }
+
       const venue = { name, address }
 
       // fill in defaults, set host as author_id, and mark it part of the proper calendar
@@ -128,14 +130,28 @@ events.post(
         show_guests: false,
         calendar_id: calendarId,
         tags: 'Source: User Submitted',
-        author_id: hostId
+        author_id: hostId,
+        contact: {
+          name: req.body.host_name,
+          phone: req.body.host_phone,
+          email: req.body.host_email
+        }
       })
 
       const results = await client.post('sites/brandnewcongress/pages/events', {
         body: { event }
       })
 
-      return res.json(results.event)
+      // response
+      res.json(results.event)
+
+      // post response hook
+      mail.sendEmailTemplate(
+        followers[candidate] || 'sam@brandnewcongress.org',
+        'New User Submitted Event!',
+        'user-event',
+        Object.assign({ candidate: req.query.candidate }, results.event)
+      )
     } catch (err) {
       log.error(err)
       console.log(err)
