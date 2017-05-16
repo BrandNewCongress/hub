@@ -42,6 +42,10 @@ const candidateToCalendar = {
   adrienneebell: 20
 }
 
+const followers = {
+  coribush: 'brendan@brandnewcongress.org'
+}
+
 const calendarToCandidate = reverseMap(candidateToCalendar)
 
 module.exports = {
@@ -52,5 +56,6 @@ module.exports = {
   calendarMap: {
     fromCandidate: candidateToCalendar,
     toCandidate: calendarToCandidate
-  }
+  },
+  followers
 }
