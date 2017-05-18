@@ -6,7 +6,8 @@ const { bodyRequired } = require('../../lib')
 const mail = require('../../mail')
 const log = require('../../log')
 const format = require('./format')
-const { nameMap, calendarMap, followers } = require('./data')
+const { calendarMap, followers } = require('./data')
+const sourceMap = require('../../source-map')
 
 const events = express()
 events.use(cors())
@@ -23,9 +24,7 @@ events.use(cors())
 events.get('/events', async (req, res) => {
   try {
     const calendarId =
-      calendarMap.fromCandidate[
-        req.query.candidate ? req.query.candidate.toLowerCase() : ''
-      ]
+      calendarMap.fromCandidate[sourceMap.match(req.query.candidate)]
 
     const date = new Date()
     const today = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
@@ -41,7 +40,7 @@ events.get('/events', async (req, res) => {
       if (req.query.candidate) {
         return res
           .status(400)
-          .json({ error: `Invalid 'candidate' ${req.query.candidate}` })
+          .json({ error: `Invalid candidate ${req.query.candidate}` })
       }
     }
 
@@ -70,7 +69,7 @@ events.get('/events', async (req, res) => {
  */
 
 events.get('/events/candidates', (req, res) => {
-  const candidates = Object.keys(nameMap.toSlug).map(key => nameMap.toSlug[key])
+  const candidates = [...new Set(sourceMap.sources.map(([_, name]) => name))]
   return res.json(candidates)
 })
 
@@ -87,7 +86,7 @@ events.post(
   ),
   async (req, res) => {
     try {
-      const candidate = nameMap.fromSlug[req.query.candidate]
+      const candidate = sourceMap.match(req.query.candidate)
       const calendarId = candidate
         ? calendarMap.fromCandidate[candidate]
         : false

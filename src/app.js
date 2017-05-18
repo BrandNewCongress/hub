@@ -58,12 +58,7 @@ const source = req => {
     toMatch = req.headers.origin
   }
 
-  let result = null
-  sourceMap.forEach(([slug, name]) => {
-    if (result == null && toMatch && toMatch.match(slug)) result = name
-  })
-
-  return result ? result : 'Brand New Congress'
+  return sourceMap.match(toMatch)
 }
 
 app.enable('trust proxy')
@@ -209,7 +204,10 @@ app.post('/people', apiLog, async (req, res) => {
   try {
     const body = req.body
 
-    const signupSource = source(req)
+    const tags = [source(req)]
+
+    if (body.subscriptions.match('justicedemocrats'))
+      tags.push('Source: Justice Democrats')
 
     const createJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.fullName),
