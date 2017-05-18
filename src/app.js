@@ -216,7 +216,7 @@ app.post('/people', apiLog, async (req, res) => {
       address: {
         zip: body.zip
       },
-      tags: [`Source: ${signupSource}`],
+      tags: tags,
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
