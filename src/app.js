@@ -314,32 +314,20 @@ app.post('/volunteers', apiLog, async (req, res) => {
   }
 })
 
-app.get('/people/count', async (req, res) => {
-  try {
-    let response = null
-    response = await axios.get(
-      `https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/people/count?access_token=${process.env.NATIONBUILDER_TOKEN}`,
-      {
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
-        },
-        validateStatus: () => true
+app.get('/people/count', (req, res) => {
+  axios
+    .get('http://go.brandnewcongress.org/people-count')
+    .then(count => {
+      res.json({ count: count.data })
+    })
+    .catch(err => {
+      log.error(err)
+      if (res.body.redirect) {
+        res.redirect(res.body.redirect)
+      } else {
+        res.status(500).json({ err })
       }
-    )
-    if (response) {
-      res.send({ count: response.data.people_count })
-    } else {
-      res.sendStatus(400)
-    }
-  } catch (ex) {
-    log.error(ex)
-    if (req.body.redirect) {
-      res.redirect(req.body.redirect)
-    } else {
-      res.sendStatus(200)
-    }
-  }
+    })
 })
 
 app.get('/conference-calls/upcoming', async (request, response) => {
