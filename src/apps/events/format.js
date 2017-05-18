@@ -13,6 +13,7 @@ module.exports = {
       id: e.id,
       url: `http://go.brandnewcongress.org${e.path}`,
       title: e.headline,
+      intro: e.intro,
       startTime: new Date(e.start_time).toISOString(),
       endTime: new Date(e.end_time).toISOString(),
       timeZone: e.time_zone,
