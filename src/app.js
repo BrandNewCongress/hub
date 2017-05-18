@@ -207,7 +207,7 @@ app.post('/people', apiLog, async (req, res) => {
     const signupSource = `Source: ${source(req)}`
     const tags = [signupSource]
 
-    if (body.subscriptions.match('justicedemocrats'))
+    if (body.subscriptions && body.subscriptions.match('justicedemocrats'))
       tags.push('Source: Justice Democrats')
 
     const createJob = queue.createJob('createPerson', {
