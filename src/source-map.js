@@ -24,7 +24,7 @@ const sources = [
 ]
 
 const match = str => {
-  if (!str && typeof str == 'string') {
+  if (!str || typeof str != 'string') {
     return 'Brand New Congress'
   }
 
