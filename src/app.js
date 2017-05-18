@@ -204,7 +204,8 @@ app.post('/people', apiLog, async (req, res) => {
   try {
     const body = req.body
 
-    const tags = [source(req)]
+    const signupSource = source(req)
+    const tags = [signupSource]
 
     if (body.subscriptions.match('justicedemocrats'))
       tags.push('Source: Justice Democrats')

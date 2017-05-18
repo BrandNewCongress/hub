@@ -12,16 +12,17 @@ const query = {
 
 db.get('API Logs').find(query).then(posts => {
   console.log(`Got ${posts.length} posts`)
-  console.log(posts.slice(posts.length - 1))
-  process.exit()
 
   posts.slice(posts.length - 1).forEach(p => {
     request
-      .post('https://api.brandnewcongress.org/nominations')
+      .post('https://api.brandnewcongress.org/people')
       .query({ dontLog: true })
       .send(p.data)
       .end((err, res) => {
-        console.log(`Success for ${JSON.stringify(p)}`)
+        if (!err)
+          console.log(`Success for ${JSON.stringify(p)}`)
+        else
+          console.error(err)
       })
   })
 })
