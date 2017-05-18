@@ -24,6 +24,10 @@ const sources = [
 ]
 
 const match = str => {
+  if (!str && typeof str == 'string') {
+    return 'Brand New Congress'
+  }
+
   const m = sources.filter(([slug, name]) =>
     slug
       .toLowerCase()
