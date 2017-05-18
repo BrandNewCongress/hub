@@ -23,8 +23,10 @@ events.use(cors())
 
 events.get('/events', async (req, res) => {
   try {
-    const calendarId =
-      calendarMap.fromCandidate[sourceMap.match(req.query.candidate)]
+    const candidate = sourceMap.match(req.query.candidate)
+    const calendarId = candidate == 'Brand New Congress'
+      ? null
+      : calendarMap.fromCandidate[candidate]
 
     const date = new Date()
     const today = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
