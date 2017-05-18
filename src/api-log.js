@@ -5,17 +5,20 @@ module.exports = (req, res, next) => {
   const data = {
     method: req.method,
     path: req.path,
-    data: req.body
+    data: req.body,
+    headers: req.headers
   }
 
   next()
 
-  db.get('API Logs').insert(data)
-  .then(ok => {
-    console.log(`Successfully logged ${req.path}`)
-  })
-  .catch(err => {
-    console.log(`Found error ${err}`)
-    console.log(err)
-  })
+  if (!req.query.dontLog) {
+    db.get('API Logs').insert(data)
+    .then(ok => {
+      console.log(`Successfully logged ${req.path}`)
+    })
+    .catch(err => {
+      console.log(`Found error ${err}`)
+      console.log(err)
+    })
+  }
 }

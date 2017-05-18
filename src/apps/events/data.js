@@ -4,42 +4,22 @@ const reverseMap = map =>
     {}
   )
 
-const slugToName = {
-  coribush: 'Cori Bush',
-  paulajean: 'Paula Jean Swearengin',
-  sarahsmith: 'Sarah Smith',
-  letitiaplummer: 'Letitia Plummer',
-  anthonyclark: 'Anthony Clark',
-  richardrice: 'Richard Rice',
-  demonddrummer: 'Demond Drummer',
-  robbryerse: 'Robb Ryerse',
-  michaelhephburn: 'Michael Hephburn',
-  chardorichardson: 'Chardo Richardon',
-  dannyellyson: 'Danny Ellyson',
-  ericterrell: 'Eric Terrell',
-  adrienneebell: 'Adriene Bell',
-  alexandriaocasio: 'Alexandra Ocasio',
-  brandnewcongress: 'General Brand New Congress'
-}
-
-const nameToSlug = reverseMap(slugToName)
-
 const candidateToCalendar = {
-  coribush: 6,
-  paulajean: 7,
-  alexandriaocasio: 8,
-  brandnewcongress: 9,
-  dannyellyson: 10,
-  chardorichardson: 11,
-  michaelhephburn: 12,
-  robbryerse: 13,
-  demonddrummer: 14,
-  richardrice: 15,
-  anthonyclark: 16,
-  letitiaplummer: 17,
-  ericterrell: 18,
-  sarahsmith: 19,
-  adrienneebell: 20
+  'Cori Bush': 6,
+  'Paula Jean Swearengin': 7,
+  'Alexandria Ocasio-Cortez': 8,
+  'Brand New Congress': 9,
+  'Danny Ellyson': 10,
+  'Chardo Richardon': 11,
+  'Michael Hepburn': 12,
+  'Robb Ryerse': 13,
+  'Demond Drummer': 14,
+  'Richard Rice': 15,
+  'Anthony Clark': 16,
+  'Letitia Plummer': 17,
+  'Eric Terrell': 18,
+  'Sarah Smith': 19,
+  'Adrienne Bell' : 20
 }
 
 const followers = {
@@ -49,10 +29,6 @@ const followers = {
 const calendarToCandidate = reverseMap(candidateToCalendar)
 
 module.exports = {
-  nameMap: {
-    fromSlug: nameToSlug,
-    toSlug: slugToName
-  },
   calendarMap: {
     fromCandidate: candidateToCalendar,
     toCandidate: calendarToCandidate
