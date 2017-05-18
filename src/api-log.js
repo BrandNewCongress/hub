@@ -20,5 +20,7 @@ module.exports = (req, res, next) => {
       console.log(`Found error ${err}`)
       console.log(err)
     })
+  } else {
+    console.log(`Not logging ${req.path}`)
   }
 }
