@@ -13,7 +13,7 @@ const query = {
 db.get('API Logs').find(query).then(posts => {
   console.log(`Got ${posts.length} posts`)
 
-  posts.slice(posts.length - 1).forEach(p => {
+  posts.forEach(p => {
     request
       .post('https://api.brandnewcongress.org/people')
       .query({ dontLog: true })

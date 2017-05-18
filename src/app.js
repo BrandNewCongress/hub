@@ -204,7 +204,7 @@ app.post('/people', apiLog, async (req, res) => {
   try {
     const body = req.body
 
-    const signupSource = source(req)
+    const signupSource = `Source: ${source(req)}`
     const tags = [signupSource]
 
     if (body.subscriptions.match('justicedemocrats'))
