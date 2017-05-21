@@ -377,7 +377,7 @@ app.post('/hooks/work-request', async (request, response) => {
     'Teams',
     body['Requesting Team']
   )
-  const teamLeader = await teamsBase.findById('People', team.get('Team Leader'))
+  const teamLeader = await teamsBase.findById('People', team.get('Deputy Team Leader') || team.get('Team Leader'))
   const users = await asana.request('GET', 'users', {
     params: { opt_fields: 'email' }
   })
