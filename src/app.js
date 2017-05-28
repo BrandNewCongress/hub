@@ -58,8 +58,6 @@ const source = req => {
     toMatch = req.headers.origin
   }
 
-  console.log(toMatch)
-
   return sourceMap.match(toMatch)
 }
 
