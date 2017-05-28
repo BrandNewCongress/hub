@@ -28,11 +28,16 @@ const match = str => {
     return 'Brand New Congress'
   }
 
-  const m = sources.filter(([slug, name]) =>
-    slug
-      .toLowerCase()
-      .replace(/[ -]/g, '')
-      .includes(str.toLowerCase().replace(/[ -]/g, ''))
+  const m = sources.filter(
+    ([slug, name]) =>
+      slug
+        .toLowerCase()
+        .replace(/[ -]/g, '')
+        .includes(str.toLowerCase().replace(/[ -]/g, '')) ||
+      str
+        .toLowerCase()
+        .replace(/[ -]/g, '')
+        .includes(slug.toLowerCase().replace(/[ -]/g, ''))
   )[0]
 
   return m ? m[1] : 'Brand New Congress'
