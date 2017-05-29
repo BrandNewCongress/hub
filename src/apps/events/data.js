@@ -19,7 +19,9 @@ const candidateToCalendar = {
   'Letitia Plummer': 17,
   'Eric Terrell': 18,
   'Sarah Smith': 19,
-  'Adrienne Bell' : 20
+  'Adrienne Bell' : 20,
+  'Hector Morales': 1021,
+  'Ryan Stone': 1022
 }
 
 const followers = {
