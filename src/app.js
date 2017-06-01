@@ -47,18 +47,21 @@ async function saveKueJob(job) {
 
 const stripBadPunc = str => (str ? str.replace(/[",]/g, '') : str)
 
-const source = req => {
-  let toMatch = null
+const source = (req, makeSource) => {
+  const toMatch = [
+    req.headers.origin,
+    req.body
+      ? req.body.forceSource
+          ? req.body.forceSource
+          : req.body.candidate ? req.body.candidate : null
+      : null
+  ].filter(m => m)
 
-  if (req.body && req.body.forceSource) {
-    toMatch = req.body.forceSource
-  } else if (req.body && req.body.candidate) {
-    toMatch = req.body.candidate
-  } else {
-    toMatch = req.headers.origin
-  }
+  return toMatch.map(m => {
+    const s = sourceMap.match(m)
 
-  return sourceMap.match(toMatch)
+    return makeSource ? `Source: ${s}` : s
+  })
 }
 
 app.enable('trust proxy')
@@ -139,7 +142,7 @@ app.post('/nominations', apiLog, async (req, res) => {
         name: stripBadPunc(body.nominatorName),
         email: body.nominatorEmail,
         phone: body.nominatorPhone,
-        tags: [`Source: ${source(req)}`],
+        tags: source(req, true),
         utmSource: body.utmSource,
         utmMedium: body.utmMedium,
         utmCampaign: body.utmCampaign
@@ -204,8 +207,9 @@ app.post('/people', apiLog, async (req, res) => {
   try {
     const body = req.body
 
-    const signupSource = `${source(req)}`
-    const tags = [`Source: ${signupSource}`]
+    const rawSources = source(req, false)
+    const signupSource = rawSources[1]
+    const tags = rawSources.map(s => `Source: ${s}`)
 
     const createJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.fullName),
@@ -374,7 +378,10 @@ app.post('/hooks/work-request', async (request, response) => {
     'Teams',
     body['Requesting Team']
   )
-  const teamLeader = await teamsBase.findById('People', team.get('Deputy Team Leader') || team.get('Team Leader'))
+  const teamLeader = await teamsBase.findById(
+    'People',
+    team.get('Deputy Team Leader') || team.get('Team Leader')
+  )
   const users = await asana.request('GET', 'users', {
     params: { opt_fields: 'email' }
   })
