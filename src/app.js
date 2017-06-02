@@ -48,6 +48,7 @@ async function saveKueJob(job) {
 const stripBadPunc = str => (str ? str.replace(/[",]/g, '') : str)
 
 const source = (req, makeSource) => {
+  console.log(req)
   const toMatch = [
     req.headers.origin,
     req.body
@@ -287,7 +288,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
       tags.push(body.volunteerAvailability)
     }
 
-    tags.push(`Source: ${source(req)}`)
+    tags.concat(source(req, true))
 
     const volunteerJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.volunteerName),
