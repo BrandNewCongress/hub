@@ -453,6 +453,10 @@ ${otherDetails.join('\n')}
   response.sendStatus(200)
 })
 
+app.get('/donate', (req, res) => {
+  res.redirect('https://secure.actblue.com/contribute/page/bnc-candidates?refcode=brandnewcongress.org')
+})
+
 app.listen(port, () => {
   log.info(`Node app is running on port ${port}`)
 })
