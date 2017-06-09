@@ -148,7 +148,7 @@ events.post(
 
       // post response hook
       mail.sendEmailTemplate(
-        'ben@brandnewcongress.org',
+        'sam@brandnewcongress.org',
         'New User Submitted Event!',
         'user-event',
         Object.assign(format.event(results.event), {candidate: req.query.candidate}, results.event)
