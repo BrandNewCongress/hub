@@ -151,7 +151,7 @@ events.post(
         followers[candidate] || 'sam@brandnewcongress.org',
         'New User Submitted Event!',
         'user-event',
-        Object.assign({ candidate: req.query.candidate }, results.event)
+        Object.assign(format.event(results.event))
       )
     } catch (err) {
       log.error(err)
