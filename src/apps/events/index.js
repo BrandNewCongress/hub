@@ -148,7 +148,7 @@ events.post(
 
       // post response hook
       mail.sendEmailTemplate(
-        followers[candidate] || 'sam@brandnewcongress.org',
+        'ben@brandnewcongress.org',
         'New User Submitted Event!',
         'user-event',
         Object.assign(format.event(results.event))
