@@ -182,6 +182,31 @@ module.exports = class BSD {
     return url.format(finalURL)
   }
 
+  async getConstituentGroupByName(groupName) {
+    let response = await this.request('cons_group/get_constituent_group_by_name', { name: groupName }, 'GET')
+    response = await parseStringPromise(response)
+    let group = response.api.cons_group
+    if (!group)
+      return null
+    if (group.length && group.length > 0)
+      group = group[0]
+
+    return this.createGroupObject(group)
+  }
+
+  async createConstituentGroups(groupNames) {
+    const groups = []
+    let xml = '<?xml version="1.0" encoding="utf-8"?><api>'
+    groupNames.forEach((name) => {
+      xml = xml + `<cons_group><name>${name}</name></cons_group>`
+    })
+    xml = xml + '</api>'
+    console.log(xml)
+    const response = await this.request('cons_group/add_constituent_groups', xml, 'POST')
+    console.log('response', response)
+    return response
+  }
+
   async getConstituentGroup(groupId) {
     let response = await this.request('cons_group/get_constituent_group', { cons_group_id: groupId }, 'GET')
     response = await parseStringPromise(response)
@@ -332,21 +357,31 @@ module.exports = class BSD {
     */
     function generateXML(data) {
       let xmlData = ''
+      function xmlForObject(obj, key) {
+        const bundleIdString = obj.id ? ` id="${obj.id}"` : ''
+        return `<${key}${bundleIdString}>${generateXML(obj)}</${key}>`
+      }
       Object.keys(data).forEach((key) => {
-        if (typeof data[key] === 'object') {
-          const bundleIdString = data[key].id ? ` id="${data[key].id}"` : ''
-          xmlData = xmlData + `<${key}${bundleIdString}>${generateXML(data[key])}</${key}>`
+        if (data[key] === null) {
+          return
         }
-        else if (data.hasOwnProperty(key) && key !== 'cons_id' && key !== 'id' && data[key] !== null && data[key] !== undefined)
+
+        if (Array.isArray(data[key])) {
+          data[key].forEach((datum) => {
+            xmlData = xmlData + xmlForObject(datum, key)
+          })
+        } else if (typeof data[key] === 'object') {
+          xmlData = xmlData + xmlForObject(data[key], key)
+        } else if (data.hasOwnProperty(key) && key !== 'cons_id' && key !== 'id' && key !== 'ext_id' && key !== 'ext_type' && data[key] !== null && data[key] !== undefined)
           xmlData = xmlData + `<${key}>${data[key]}</${key}>`
       })
       return xmlData
     }
 
-    const consIdString = data.cons_id ? ` id="${data.cons_id}"` : ''
+    const consIdString = `${data.cons_id ? 'id="' + data.cons_id + '"' : ''} ${data.ext_id ? 'ext_id="' + data.ext_id + '"' : ''} ${data.ext_type ? 'ext_type="' + data.ext_type + '"' : ''}`
     let params = `<?xml version="1.0" encoding="utf-8"?><api><cons${consIdString}>${generateXML(data)}</cons></api>`
 
-    log.debug(params)
+    log.info(params)
     let response = await this.request('/cons/set_constituent_data', params, 'POST')
     return response
   }
