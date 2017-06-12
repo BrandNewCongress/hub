@@ -74,6 +74,7 @@ const TagMap = {
   'Signed: Letter to Keith Ellison': 'Petition: Letter to Keith Ellison',
   'Signed: Medicare for All': 'Petition: Medicare for All',
   'Signed: Syrian War': 'Petition: Syrian War',
+  'Petition: NAFTA': 'Petition: NAFTA',
   'skill-call': 'Skill: Calling',
   'skill-calling': 'Skill: Calling',
   'skill-data entry': 'Skill: Data Entry',
