@@ -91,7 +91,7 @@ const TagMap = {
   'skill-knock doors': 'Skill: Door Knocking',
   'skill-legal': 'Skill: Legal',
   'skill-manage-communities': 'Skill: Community Management',
-  'skill-nationbuilder': 'Skill; Nationbuilder',
+  'skill-nationbuilder': 'Skill: Nationbuilder',
   'skill-office help': 'Skill: Office Help',
   'skill-photo': 'Skill: Photography',
   'skill-press': 'Skill: Press',
