@@ -48,7 +48,6 @@ async function saveKueJob(job) {
 const stripBadPunc = str => (str ? str.replace(/[",]/g, '') : str)
 
 const source = (req, makeSource) => {
-  console.log(req)
   const toMatch = [
     req.headers.origin,
     req.body
@@ -61,7 +60,7 @@ const source = (req, makeSource) => {
   return toMatch.map(m => {
     const s = sourceMap.match(m)
 
-    return makeSource ? `Source: ${s}` : s
+    return makeSource ? `Signup: ${s}` : s
   })
 }
 
@@ -139,11 +138,13 @@ app.post('/nominations', apiLog, async (req, res) => {
     }
 
     if (isValidFullBody(body)) {
+      let tags = source(req, true)
+      tags.push('Action: Nominated Candidate')
       const createJob = queue.create('createPerson', {
         name: stripBadPunc(body.nominatorName),
         email: body.nominatorEmail,
         phone: body.nominatorPhone,
-        tags: source(req, true),
+        tags: tags,
         utmSource: body.utmSource,
         utmMedium: body.utmMedium,
         utmCampaign: body.utmCampaign
@@ -210,7 +211,7 @@ app.post('/people', apiLog, async (req, res) => {
 
     const rawSources = source(req, false)
     const signupSource = rawSources[1]
-    const tags = rawSources.map(s => `Source: ${s}`)
+    const tags = rawSources.map(s => `Signup: ${s}`)
 
     const createJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.fullName),
