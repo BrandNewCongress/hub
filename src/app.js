@@ -282,14 +282,14 @@ app.post('/volunteers', apiLog, async (req, res) => {
       counter = counter + 1
     })
 
-    const tags = (body.volunteerSkills || [])
+    let tags = (body.volunteerSkills || [])
       .concat(body.volunteerFrequency || [])
 
     if (body.volunteerAvailability) {
       tags.push(body.volunteerAvailability)
     }
 
-    tags.push(source(req, true))
+    tags = tags.concat(source(req, true))
     log.info(tags)
 
     const volunteerJob = queue.createJob('createPerson', {
