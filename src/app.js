@@ -289,7 +289,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
       tags.push(body.volunteerAvailability)
     }
 
-    tags.concat(source(req, true))
+    tags.push(source(req, true))
     log.info(tags)
 
     const volunteerJob = queue.createJob('createPerson', {
