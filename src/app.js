@@ -290,6 +290,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
     }
 
     tags.concat(source(req, true))
+    log.info(tags)
 
     const volunteerJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.volunteerName),
