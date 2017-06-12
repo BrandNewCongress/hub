@@ -201,9 +201,7 @@ module.exports = class BSD {
       xml = xml + `<cons_group><name>${name}</name></cons_group>`
     })
     xml = xml + '</api>'
-    console.log(xml)
     const response = await this.request('cons_group/add_constituent_groups', xml, 'POST')
-    console.log('response', response)
     return response
   }
 
@@ -273,6 +271,25 @@ module.exports = class BSD {
 
   createBundleString(bundles) {
     return bundles.join(',')
+  }
+  async getConstituentByExtId(extType, extId) {
+    let response = await this.request(
+      '/cons/get_constituents_by_ext_id',
+      {
+        ext_type: extType,
+        ext_ids: extId
+      }
+    )
+
+    response = await parseStringPromise(response)
+    let constituent = response.api.cons
+
+    if (!constituent)
+      return null
+    if (constituent.length && constituent.length > 0)
+      constituent = constituent[0]
+
+    return this.createConstituentObject(constituent)
   }
 
   async getConstituentByEmail(email) {
@@ -381,9 +398,10 @@ module.exports = class BSD {
     const consIdString = `${data.cons_id ? 'id="' + data.cons_id + '"' : ''} ${data.ext_id ? 'ext_id="' + data.ext_id + '"' : ''} ${data.ext_type ? 'ext_type="' + data.ext_type + '"' : ''}`
     let params = `<?xml version="1.0" encoding="utf-8"?><api><cons${consIdString}>${generateXML(data)}</cons></api>`
 
-    log.info(params)
+    log.debug(params)
     let response = await this.request('/cons/set_constituent_data', params, 'POST')
-    return response
+    response = await parseStringPromise(response)
+    return response.api.cons[0]['$']
   }
 
   async createConstituent(email, firstname, lastname) {
@@ -585,7 +603,7 @@ module.exports = class BSD {
       throw new BSDValidationError(JSON.stringify(response.validation_errors))
     else if (typeof response.event_id_obfuscated === 'undefined')
       throw new Error(response)
-    log.info('response', response)
+    log.debug('response', response)
     return response
   }
 

@@ -5,7 +5,79 @@ const log = require('../log')
 
 const bsd = new bsdConstructor(process.env.BSD_HOST, process.env.BSD_ID, process.env.BSD_SECRET)
 const REFRESH_CONS_GROUPS = false
-async function sync() {
+
+async function nbPersonToBSDCons(person) {
+  if (person.tags.length === 1 && person.tags[0] === 'Supporter') {
+    person.tags = ['Source: Brand New Congress']
+  }
+  let consGroups = person.tags.map((tag) => TagMap[tag])
+    .filter((ele) => ele !== null)
+  consGroups = consGroups.filter((ele, pos) => consGroups.indexOf(ele) === pos)
+  consGroups = consGroups.map((group) => consGroupIdMap[group])
+    .map((group) => ({ id: group }))
+  if (person.email && consGroups.length > 0) {
+    const names = person.first_name.split(' ')
+    const address = person.primary_address
+    const consData = {
+      firstname: names[0] || null,
+      middlename: names[1] || null,
+      lastname: person.last_name,
+      create_dt: person.created_at,
+      gender: person.sex,
+      ext_id: person.id,
+      ext_type: 'nationbuilder_id',
+      employer: person.employer,
+      occupation: person.occupation,
+      cons_email: {
+        email: person.email,
+        is_subscribed: person.email_opt_in ? 1 : 0,
+        is_primary: 1
+      }
+    }
+    if (person.external_id) {
+      consData.id = person.external_id
+    }
+    if (address) {
+      consData.cons_addr = [{
+        addr1: address.address1,
+        addr2: address.address2,
+        city: address.city,
+        state_cd: address.state,
+        zip: address.zip,
+        country: address.country_code
+      }]
+    }
+    const phones = []
+    if (person.mobile) {
+      phones.push({
+        phone: person.mobile,
+        phone_type: 'mobile',
+        is_primary: 1
+      })
+    }
+
+    if (person.phone) {
+      phones.push({
+        phone: person.phone,
+        phone_type: 'home',
+        is_primary: person.mobile ? 0 : 1
+      })
+    }
+    if (phones.length > 0) {
+      consData.cons_phone = phones
+    }
+    consData.cons_group = consGroups
+    const cons = await bsd.setConstituentData(consData)
+    if (!person.external_id) {
+      await nationbuilder.makeRequest('PUT', `people/${person.id}`, { body: { person: {
+        external_id: cons.id
+      }}})
+    }
+    return cons
+  }
+  return null
+}
+async function syncPeople() {
   let tagResults = await nationbuilder.makeRequest('GET', 'tags', { params: { limit: 100 } })
   let allTags = []
   while (tagResults.data.next) {
@@ -49,83 +121,143 @@ async function sync() {
   }
 
   // SYNC PEOPLE
-  let results = await nationbuilder.makeRequest('GET', 'people/search', { params: { limit: 100 , updated_since: moment('2017-06-09').toISOString()}})//
+  let results = await nationbuilder.makeRequest('GET', 'people/search', { params: { limit: 100 , updated_since: moment('2017-06-09').toISOString()}})
   const peopleRecords = []
 
   let count = 0
-  while (results.data.next) {
+  while (true) {
     log.info(`Processing results: ${count}...`)
     const people = results.data.results
     const length = people.length
     for (let index = 0; index < length; index++) {
       const person = people[index]
-      if (person.tags.length === 1 && person.tags[0].name === 'Supporter') {
-        person.tags = ['Source: Brand New Congress']
-      }
-      let consGroups = person.tags.map((tag) => TagMap[tag])
-        .filter((ele) => ele !== null)
-      consGroups = consGroups.filter((ele, pos) => consGroups.indexOf(ele) === pos)
-      consGroups = consGroups.map((group) => consGroupIdMap[group])
-        .map((group) => ({ id: group }))
-      if (person.email && consGroups.length > 0) {
-        const names = person.first_name.split(' ')
-        const address = person.primary_address
-        const consData = {
-          firstname: names[0] || null,
-          middlename: names[1] || null,
-          lastname: person.last_name,
-          create_dt: person.created_at,
-          gender: person.sex,
-          ext_id: person.id,
-          ext_type: 'nationbuilder',
-          employer: person.employer,
-          occupation: person.occupation,
-          cons_email: {
-            email: person.email,
-            is_subscribed: person.email_opt_in ? 1 : 0,
-            is_primary: 1
-          }
-        }
-        if (address) {
-          consData.cons_addr = [{
-            addr1: address.address1,
-            addr2: address.address2,
-            city: address.city,
-            state_cd: address.state,
-            zip: address.zip,
-            country: address.country_code
-          }]
-        }
-        const phones = []
-        if (person.mobile) {
-          phones.push({
-            phone: person.mobile,
-            phone_type: 'mobile',
-            is_primary: 1
-          })
-        }
-
-        if (person.phone) {
-          phones.push({
-            phone: person.phone,
-            phone_type: 'home',
-            is_primary: person.mobile ? 0 : 1
-          })
-        }
-        if (phones.length > 0) {
-          consData.cons_phone = phones
-        }
-        consData.cons_group = consGroups
-        await bsd.setConstituentData(consData)
-      }
+      await nbPersonToBSDCons(person)      
     }
-    const next = results.data.next.split('?')    
-    results = await nationbuilder.makeRequest('GET', results.data.next, { params: { limit: 100 } })
-    count = count + 100
-    break
+    if (results.data.next) {
+      const next = results.data.next.split('?')    
+      results = await nationbuilder.makeRequest('GET', results.data.next, { params: { limit: 100 } })
+      count = count + 100
+    } else {
+      break
+    }
+  }
+}
+
+async function syncEvents() {
+  let results = await nationbuilder.makeRequest('GET', 'sites/brandnewcongress/pages/events', { params: {
+    starting: moment().format('YYYY-MM-DD'),
+    limit: 100
+  } })
+
+  // Grab all NB events
+  const allNBEvents = []
+  while(true) {
+    const events = results.data.results
+    events.forEach((event) => {
+      if (event.status === 'published') {
+        allNBEvents.push(event)
+      }
+    })
+
+    if (results.data.next) {
+      const next = results.data.next.split('?')    
+      results = await nationbuilder.makeRequest('GET', results.data.next, { params: { limit: 100 } })
+    } else {
+      break
+    }
   }
 
-  // SYNC EVENTS
+  console.log(allNBEvents.length)
+  for (let index = 0; index < allNBEvents.length; index++) {
+    const event = allNBEvents[index]
+    let nbPerson = await nationbuilder.makeRequest('GET', `people/${event.author_id}`, {})
+    let consId = nbPerson.external_id
+    if (!consId) {
+      nbPerson = nbPerson.data.person
+      const bsdCons = await nbPersonToBSDCons(nbPerson)
+      consId = bsdCons.id
+    }
+    if (!consId) {
+      log.error(`Somehow there is no BSD person associated with NB person: ${event.author_id}`)
+      break
+    }
+    const startTime = event.start_time
+    const timezone = timezoneMap[event.time_zone]
+    const startDatetimeSystem = moment.tz(startTime, timezone).format('YYYY-MM-DD HH:mm:ss')
+    const duration = moment.duration(moment(event.end_time).diff(moment(event.start_time))).asMinutes()
+    const bsdEvent = {
+      name: event.name,
+      event_type_id: 1,
+      description: event.intro || event.name,
+      creator_cons_id: consId,
+      local_timezone: timezone,
+      is_searchable: 1,
+      start_datetime_system: startDatetimeSystem,
+      duration: duration.toString()
+    }
+    if (event.contact) {
+      bsdEvent.contact_phone = event.contact.phone
+      bsdEvent.public_phone = 1
+    }
+    if (event.venue) {
+      bsdEvent.venue_name = event.venue.name
+      const address = event.venue.address
+      if (!address || !address.zip || !address.city || !address.state) {
+        log.info(`Not syncing event: ${event.name}. Missing address info.`)
+        continue
+      }
+      bsdEvent.venue_addr1 = address.address1
+      bsdEvent.venue_addr2 = `${address.address2}%${event.slug}`
+      bsdEvent.venue_zip = address.zip
+      bsdEvent.venue_city = address.city
+      bsdEvent.venue_state_cd = address.state
+      bsdEvent.venue_country = address.country_code
+    }
+
+    if (event.external_id) {
+      bsdEvent.event_id_obfuscated = event.external_id
+      try {
+        await bsd.updateEvent(bsdEvent)
+      } catch (ex) {
+        if (ex.name && ex.name === 'BSDExistsError') {
+          event.external_id = null
+          delete bsdEvent.event_id_obfuscated
+        } else {
+          throw ex
+        }
+      }
+    }
+
+    console.log(event.id, event.name)
+    // CREATION
+    if (!event.external_id) {    
+      const createdEvent = await bsd.createEvent(bsdEvent)
+      const updateEvent = Object.assign({}, event)
+      updateEvent.external_id = createdEvent.event_id_obfuscated
+      await nationbuilder.makeRequest('PUT', `sites/brandnewcongress/pages/events/${event.id}`, { body: {
+        event: updateEvent
+      }})          
+    // UPDATE
+    }
+    // SYNC RSVPS TODO
+    /*let results = await nationbuilder.makeRequest('GET', `sites/brandnewcongress/pages/events/${event.id}/rsvps`, { params: { limit: 100 }})
+    let eventRSVPs = []
+    while (true) {
+      eventRSVPs.concat(results.data.results)
+      if (results.data.next) {
+        const next = results.data.next.split('?')    
+        results = await nationbuilder.makeRequest('GET', results.data.next, { params: { limit: 100 } })
+      } else {
+        break
+      }
+    }
+    */
+
+  }
+  // DELETE BSD EVENTS TODO
+}
+async function sync() {
+  await syncEvents()
 }
 
 const TagMap = {
@@ -583,6 +715,13 @@ const consGroupIdMap = {
   'Action: Attended Event: 2017/05/07 @ St. Louis, MO': '30',
   'Action: Attended Event: 2017/05/13 @ St. Louis, MO': '29',
   'Action: Attended Event: 2017/05/03 @ St. Louis, MO': '28' 
+}
+
+const timezoneMap = {
+  'Eastern Time (US & Canada)' : 'US/Eastern',
+  'Central Time (US & Canada)' : 'US/Central',
+  'Pacific Time (US & Canada)' : 'US/Pacific',
+  'Mountain Time (US & Canada)' : 'US/Mountain'
 }
 
 sync().catch((ex) => console.log(ex))
