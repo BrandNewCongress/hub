@@ -2,6 +2,7 @@ const axios = require('axios')
 const log = require('./log')
 const url = require('url')
 const { formatLink } = require('./lib')
+const { convertTags } = require('./legacy-tag-map')
 
 class Nationbuilder {
   async makeRequest(method, path, { body, params }) {
@@ -101,9 +102,10 @@ class Nationbuilder {
   }
 
   async addTagsToPerson(id, tags) {
+    const newTags = convertTags(tags)
     return this.makeRequest('PUT', `people/${id}/taggings`, { body: {
       tagging: {
-        tag: tags
+        tag: newTags
       }
     }})
   }
