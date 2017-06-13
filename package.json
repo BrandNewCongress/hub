@@ -61,6 +61,7 @@
     "nation-pool": "github:brandnewcongress/nation-pool",
     "nodemon": "^1.9.2",
     "normalize-url": "^1.8.0",
+    "redis": "^2.7.1",
     "request-promise": "^4.1.1",
     "rollbar": "^0.6.2",
     "to-camel-case": "^1.0.0",
