@@ -138,7 +138,7 @@ app.post('/nominations', apiLog, async (req, res) => {
     }
 
     if (isValidFullBody(body)) {
-      let sources = source(req, true)
+      let sources = source(req, false)
       let tags = []
       sources.forEach((s) => {
         tags.push(`Action: Nominated Candidate: ${s}`)

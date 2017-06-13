@@ -1,8 +1,8 @@
 const log = require('./log')
 
 const TagMap = {
-  'Action: Nominated Candidate: Signup: Brand New Congress': 'Action: Nominated Candidate: Signup: Brand New Congress',
-  'Action: Nominated Candidate: Signup: Justice Democrats': 'Action: Nominated Candidate: Signup: Justice Democrats',
+  'Action: Nominated Candidate: Brand New Congress': 'Action: Nominated Candidate: Brand New Congress',
+  'Action: Nominated Candidate: Justice Democrats': 'Action: Nominated Candidate: Justice Democrats',
   'Alexandria Ocasio-Cortez': 'Signup: Alexandria Ocasio-Cortez',
   'available-0-5': 'Availability: 0-5 Hours',
   'available-10-20': 'Availability: 10-20 Hours',
