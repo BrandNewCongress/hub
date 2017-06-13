@@ -336,8 +336,7 @@ function convertTags(tags) {
       } else if (reverseTagMap.hasOwnProperty(tagName)) {
         return tagName
       } else {
-        log.error(`Cannot find tag anywhere ${tagName}`)
-        return null
+        return tagName
       }
     })
   }
