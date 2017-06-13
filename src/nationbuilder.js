@@ -103,11 +103,25 @@ class Nationbuilder {
 
   async addTagsToPerson(id, tags) {
     const newTags = convertTags(tags)
-    return this.makeRequest('PUT', `people/${id}/taggings`, { body: {
-      tagging: {
-        tag: newTags
+    let tagsToPush = []
+    for (let index = 0; index < newTags.length; index++) {
+      tagsToPush.push(newTags[index])
+      if (tagsToPush.length >= 25) {
+        await this.makeRequest('PUT', `people/${id}/taggings`, { body: {
+          tagging: {
+            tag: tagsToPush
+          }
+        }})
+        tagsToPush = []
       }
-    }})
+    }
+    if (tagsToPush.length > 0) {
+      await this.makeRequest('PUT', `people/${id}/taggings`, { body: {
+        tagging: {
+          tag: tagsToPush
+        }
+      }})
+    }
   }
 }
 
