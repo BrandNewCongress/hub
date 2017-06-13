@@ -138,8 +138,11 @@ app.post('/nominations', apiLog, async (req, res) => {
     }
 
     if (isValidFullBody(body)) {
-      const source = source(req, true)
-      tags.push(`Action: Nominated Candidate: ${source}`)
+      let sources = source(req, true)
+      let tags = []
+      sources.forEach((s) => {
+        tags.push(`Action: Nominated Candidate: ${s}`)
+      })
       const createJob = queue.create('createPerson', {
         name: stripBadPunc(body.nominatorName),
         email: body.nominatorEmail,
