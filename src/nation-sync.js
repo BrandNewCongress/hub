@@ -31,7 +31,6 @@ async function refreshConsGroups() {
 }
 
 async function nbPersonToBSDCons(person) {
-  log.info('Syncing person: ', person.id)
   const tagPrefixWhitelist = [
     'Action:',
     'Availability:',
@@ -134,6 +133,7 @@ async function syncPeople() {
     const length = people.length
     for (let index = 0; index < length; index++) {
       const person = people[index]
+      log.info('Syncing person: ', person.id, person.email)
       await nbPersonToBSDCons(person)
     }
     if (results.data.next) {
@@ -177,13 +177,11 @@ async function syncEvents() {
 
   for (let index = 0; index < allNBEvents.length; index++) {
     const event = allNBEvents[index]
+    log.info('Syncing event', event.name)
     let nbPerson = await nationbuilder.makeRequest('GET', `people/${event.author_id}`, {})
-    let consId = nbPerson.external_id
-    if (!consId) {
-      nbPerson = nbPerson.data.person
-      const bsdCons = await nbPersonToBSDCons(nbPerson)
-      consId = bsdCons.id
-    }
+    nbPerson = nbPerson.data.person
+    const bsdCons = await nbPersonToBSDCons(nbPerson)
+    consId = bsdCons.id
     if (!consId) {
       log.error(`Somehow there is no BSD person associated with NB person: ${event.author_id}`)
       break
