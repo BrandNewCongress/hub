@@ -1,3 +1,4 @@
 server: npm run dev-start
 redis: redis-server
 worker: npm run dev-worker
+syncer: npm run nation-sync
