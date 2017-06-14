@@ -7,7 +7,7 @@ const redis = require('redis')
 const bluebird = require('bluebird')
 bluebird.promisifyAll(redis.RedisClient.prototype)
 bluebird.promisifyAll(redis.Multi.prototype)
-const redisClient = redis.createClient()
+const redisClient = redis.createClient(process.env.REDIS_URL)
 const bsd = new bsdConstructor(process.env.BSD_API_URL, process.env.BSD_API_ID, process.env.BSD_API_SECRET)
 
 redisClient.on("error", function (err) {
