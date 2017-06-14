@@ -194,6 +194,21 @@ module.exports = class BSD {
     return this.createGroupObject(group)
   }
 
+
+  async deleteConstituentGroups(idArray) {
+    console.log(`cons_group/delete_constituent_groups?cons_group_ids=${idArray.join(',')}`)
+    return await this.request('cons_group/delete_constituent_groups', { cons_group_ids: idArray.join(',') }, 'GET')
+  }
+
+  async listConstituentGroups() {
+    let response = await this.request('cons_group/list_constituent_groups')
+    response = await parseStringPromise(response)
+    let list = response.api.cons_group
+    if (!list)
+      return null
+    return list
+  }
+
   async createConstituentGroups(groupNames) {
     const groups = []
     let xml = '<?xml version="1.0" encoding="utf-8"?><api>'
@@ -483,6 +498,11 @@ module.exports = class BSD {
     })
     let responses = await Promise.all(promises)
     return responses
+  }
+
+  async searchEvents(params) {
+    let response = await this.request('/event/search_events', params)
+    return response
   }
 
   apiInputsFromEvent(event) {
