@@ -174,6 +174,10 @@ events.post(
   bodyRequired('email guests_count volunteer phone name'),
   async (req, res) => {
     try {
+      const event = await client.get(`sites/brandnewcongress/pages/events/${req.params.id}`)
+      const calendar  = await client.get(`sites/brandnewcongress/pages/calendars/${event.calendar_id}`)
+      const candidateName = calendar.name
+      const tagName = `Action: RSVP: ${candidateName}`
       const personId = await getPersonId({
         email: req.body.email,
         phone: req.body.phone,
@@ -189,6 +193,7 @@ events.post(
         `sites/brandnewcongress/pages/events/${req.params.id}/rsvps`,
         { body: { rsvp } }
       )
+      await client.put(`people/${personId}/taggings`, { body: { tagging: { tag: [tagName] } } })
 
       return res.json(results.rsvp)
     } catch (err) {
