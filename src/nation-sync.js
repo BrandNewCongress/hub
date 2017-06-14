@@ -16,49 +16,6 @@ redisClient.on("error", function (err) {
 
 let CONS_GROUP_MAP = {}
 
-async function createConsGroups() {
-  await refreshConsGroups()
-  const tagPrefixWhitelist = [
-    'Action:',
-    'Availability:',
-    'Skill:'
-  ]
-  let allTags = []
-  let res = await nationbuilder.makeRequest('GET', 'tags', { params: { 
-    limit: 100    
-  }})
-  while (true) {
-    const tags = res.data.results
-    allTags = allTags.concat(tags)
-    if (res.data.next) {
-      const next = res.data.next.split('?')    
-      res = await nationbuilder.makeRequest('GET', res.data.next, { params: { 
-        limit: 100 
-      }})
-    } else {
-      break
-    }
-  }
-  allTags = allTags.map((tag) => tag.name)
-  const filteredTags = allTags.filter((tag) => {
-    let foundPrefix = false
-    tagPrefixWhitelist.forEach((prefix) => {
-      if (tag.indexOf(prefix) === 0) {
-        foundPrefix = true
-      }
-    })
-    return foundPrefix
-  })
-  for (let index = 0; index < filteredTags.length; index++) {
-    const group = filteredTags[index]
-    if (!CONS_GROUP_MAP.hasOwnProperty(group)) {
-      console.log(`Creating ${group}...`)
-      await bsd.createConstituentGroups([group])
-      await refreshConsGroups()
-    }
-  }
-}
-
 async function refreshConsGroups() {
   log.info('Refreshing cons groups...')
   CONS_GROUP_MAP = {}
@@ -325,15 +282,12 @@ async function syncEvents() {
 }
 
 async function sync() {
-  /*
-  console.log('start')
+  log.info('Starting sync...')
   await refreshConsGroups()
   await syncPeople()
   await syncEvents()
-  setTimeout(sync, 2000)
-  console.log('done')
-  */
-  await createConsGroups()
+  setTimeout(sync, 600000)
+  log.info('Done syncing!')
 }
 
 const timezoneMap = {
