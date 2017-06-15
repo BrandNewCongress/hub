@@ -19,7 +19,8 @@ module.exports = {
       timeZone: e.time_zone,
       timeZoneOffset: timeZoneMap[e.time_zone],
       venue: e.venue,
-      candidate: calendarMap[e.calendar_id]
+      candidate: calendarMap[e.calendar_id],
+      calendar: e.calendar_id
     }
   }
 }
