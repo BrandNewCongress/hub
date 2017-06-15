@@ -404,8 +404,13 @@ module.exports = class BSD {
           })
         } else if (typeof data[key] === 'object') {
           xmlData = xmlData + xmlForObject(data[key], key)
-        } else if (data.hasOwnProperty(key) && key !== 'cons_id' && key !== 'id' && key !== 'ext_id' && key !== 'ext_type' && data[key] !== null && data[key] !== undefined)
-          xmlData = xmlData + `<${key}>${data[key]}</${key}>`
+        } else if (data.hasOwnProperty(key) && key !== 'cons_id' && key !== 'id' && key !== 'ext_id' && key !== 'ext_type' && data[key] !== null && data[key] !== undefined) {
+          let datum = data[key]
+          if (typeof data[key] === 'string') {
+            datum = data[key].replace('&', 'and')
+          }
+          xmlData = xmlData + `<${key}>${datum}</${key}>`
+        }
       })
       return xmlData
     }
