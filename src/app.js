@@ -47,8 +47,7 @@ async function saveKueJob(job) {
 
 const stripBadPunc = str => (str ? str.replace(/[",]/g, '') : str)
 
-const source = (req, makeSource) => {
-  console.log(req)
+const source = (req) => {
   const toMatch = [
     req.headers.origin,
     req.body
@@ -60,8 +59,7 @@ const source = (req, makeSource) => {
 
   return toMatch.map(m => {
     const s = sourceMap.match(m)
-
-    return makeSource ? `Source: ${s}` : s
+    return s
   })
 }
 
@@ -139,11 +137,16 @@ app.post('/nominations', apiLog, async (req, res) => {
     }
 
     if (isValidFullBody(body)) {
+      let sources = source(req, false)
+      let tags = []
+      sources.forEach((s) => {
+        tags.push(`Action: Nominated Candidate: ${s}`)
+      })
       const createJob = queue.create('createPerson', {
         name: stripBadPunc(body.nominatorName),
         email: body.nominatorEmail,
         phone: body.nominatorPhone,
-        tags: source(req, true),
+        tags: tags,
         utmSource: body.utmSource,
         utmMedium: body.utmMedium,
         utmCampaign: body.utmCampaign
@@ -208,9 +211,9 @@ app.post('/people', apiLog, async (req, res) => {
   try {
     const body = req.body
 
-    const rawSources = source(req, false)
+    const rawSources = source(req)
     const signupSource = rawSources[1]
-    const tags = rawSources.map(s => `Source: ${s}`)
+    const tags = rawSources.map(s => `Action: Joined Website: ${s}`)
 
     const createJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.fullName),
@@ -281,14 +284,18 @@ app.post('/volunteers', apiLog, async (req, res) => {
       counter = counter + 1
     })
 
-    const tags = (body.volunteerSkills || [])
+    let tags = (body.volunteerSkills || [])
       .concat(body.volunteerFrequency || [])
 
     if (body.volunteerAvailability) {
       tags.push(body.volunteerAvailability)
     }
 
-    tags.concat(source(req, true))
+    let sourceTags = source(req)
+    sourceTags = sourceTags.map((s) => `Action: Joined as Volunteer: ${s}`)
+
+    tags = tags.concat(sourceTags)
+    log.info(tags)
 
     const volunteerJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.volunteerName),
