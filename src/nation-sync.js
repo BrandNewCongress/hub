@@ -67,7 +67,7 @@ async function nbPersonToBSDCons(person) {
   const consData = {
     firstname: names[0] || null,
     middlename: names[1] || null,
-    lastname: person.last_name,
+    lastname: person.last_name || null,
     create_dt: person.created_at,
     gender: person.sex,
     ext_id: person.id,
