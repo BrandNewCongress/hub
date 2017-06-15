@@ -113,9 +113,9 @@ async function nbPersonToBSDCons(person) {
   consData.cons_group = consGroupIds
   let cons = null
   try {
-    log.info(consData)
     cons = await bsd.setConstituentData(consData)
   } catch (ex)  {
+    log.info(consData)
     log.error(ex)
   }
   return cons
