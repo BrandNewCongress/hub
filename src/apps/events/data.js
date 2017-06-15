@@ -21,7 +21,8 @@ const candidateToCalendar = {
   'Sarah Smith': 19,
   'Adrienne Bell' : 20,
   'Hector Morales': 1021,
-  'Ryan Stone': 1022
+  'Ryan Stone': 1022,
+  'Paul Perry': 1026
 }
 
 const followers = {

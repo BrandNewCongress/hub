@@ -22,6 +22,7 @@ const sources = [
   ['alexandria-ocasio-cortez', 'Alexandria Ocasio-Cortez'],
   ['hector-morales', 'Hector Morales'],
   ['ryan-stone', 'Ryan Stone'],
+  ['paul-perry', 'Paul Perry'],
   ['brandnewcongress', 'Brand New Congress']
 ]
 
