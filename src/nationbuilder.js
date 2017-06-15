@@ -2,13 +2,22 @@ const axios = require('axios')
 const log = require('./log')
 const url = require('url')
 const { formatLink } = require('./lib')
+const { convertTags } = require('./legacy-tag-map')
 
 class Nationbuilder {
-  async makeRequest(method, path, body) {
+  async makeRequest(method, path, { body, params }) {
+    let newPath = path
+    if (newPath.indexOf('/api/v1') === -1) {
+      newPath = `/api/v1/${newPath}`
+    }
+    let newParams = {}
+    Object.assign(newParams, params)    
+    newParams.access_token = process.env.NATIONBUILDER_TOKEN
     const response = await axios({
       method,
       data: body,
-      url: `https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com/api/v1/${path}?access_token=${process.env.NATIONBUILDER_TOKEN}`,
+      params: newParams,
+      url: `https://${process.env.NATIONBUILDER_SLUG}.nationbuilder.com${newPath}`,
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
       validateStatus: () => true
     })
@@ -64,7 +73,7 @@ class Nationbuilder {
       utm_campaign: utmCampaign
     }
 
-    const response = await this.makeRequest('POST', 'people', { person: requestBody })
+    const response = await this.makeRequest('POST', 'people', { body: { person: requestBody } })
     if (response && (response.status === 409 || response.status === 201)) {
       const personId = response.data.person.id
       const personProfile = response.data.person.note
@@ -89,15 +98,30 @@ class Nationbuilder {
   }
 
   async updatePerson(id, fields) {
-    return this.makeRequest('PUT', `people/${id}`, fields)
+    return this.makeRequest('PUT', `people/${id}`, { body: fields })
   }
 
   async addTagsToPerson(id, tags) {
-    return this.makeRequest('PUT', `people/${id}/taggings`, {
-      tagging: {
-        tag: tags
+    const newTags = convertTags(tags)
+    let tagsToPush = []
+    for (let index = 0; index < newTags.length; index++) {
+      tagsToPush.push(newTags[index])
+      if (tagsToPush.length >= 25) {
+        await this.makeRequest('PUT', `people/${id}/taggings`, { body: {
+          tagging: {
+            tag: tagsToPush
+          }
+        }})
+        tagsToPush = []
       }
-    })
+    }
+    if (tagsToPush.length > 0) {
+      await this.makeRequest('PUT', `people/${id}/taggings`, { body: {
+        tagging: {
+          tag: tagsToPush
+        }
+      }})
+    }
   }
 }
 
