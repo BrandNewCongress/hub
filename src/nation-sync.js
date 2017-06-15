@@ -111,7 +111,13 @@ async function nbPersonToBSDCons(person) {
     consData.cons_phone = phones
   }
   consData.cons_group = consGroupIds
-  const cons = await bsd.setConstituentData(consData)
+  let cons = null
+  try {
+    const cons = await bsd.setConstituentData(consData)
+  } catch (ex)  {
+    log.error(consData)
+    log.error(ex)
+  }
   return cons
 }
 async function syncPeople() {
