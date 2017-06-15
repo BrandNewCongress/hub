@@ -69,11 +69,11 @@ async function nbPersonToBSDCons(person) {
     middlename: names[1] || null,
     lastname: person.last_name || null,
     create_dt: person.created_at,
-    gender: person.sex,
+    gender: person.sex || null,
     ext_id: person.id,
     ext_type: 'nationbuilder_id',
-    employer: person.employer,
-    occupation: person.occupation,
+    employer: person.employer || null,
+    occupation: person.occupation || null,
     cons_email: {
       email: person.email,
       is_subscribed: person.email_opt_in ? 1 : 0,
@@ -83,12 +83,12 @@ async function nbPersonToBSDCons(person) {
 
   if (address) {
     consData.cons_addr = [{
-      addr1: address.address1,
-      addr2: address.address2,
-      city: address.city,
-      state_cd: address.state,
-      zip: address.zip,
-      country: address.country_code
+      addr1: address.address1 || null,
+      addr2: address.address2 || null,
+      city: address.city || null,
+      state_cd: address.state || null,
+      zip: address.zip || null,
+      country: address.country_code || null
     }]
   }
   const phones = []
@@ -113,9 +113,9 @@ async function nbPersonToBSDCons(person) {
   consData.cons_group = consGroupIds
   let cons = null
   try {
-    const cons = await bsd.setConstituentData(consData)
+    log.info(consData)
+    cons = await bsd.setConstituentData(consData)
   } catch (ex)  {
-    log.error(consData)
     log.error(ex)
   }
   return cons
