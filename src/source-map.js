@@ -13,7 +13,7 @@ const sources = [
   ['robb-ryerse', 'Robb Ryerse'],
   ['michael-hepburn', 'Michael Hepburn'],
   ['michael-a-hepburn', 'Michael Hepburn'],
-  ['chardo-richardson', 'Chardo Richardon'],
+  ['chardo-richardson', 'Chardo Richardson'],
   ['danny-ellyson', 'Danny Ellyson'],
   ['eric-terrell', 'Eric Terrell'],
   ['adrienne-bell', 'Adrienne Bell'],
