@@ -10,7 +10,7 @@ const candidateToCalendar = {
   'Alexandria Ocasio-Cortez': 8,
   'Brand New Congress': 9,
   'Danny Ellyson': 10,
-  'Chardo Richardon': 11,
+  'Chardo Richardson': 11,
   'Michael Hepburn': 12,
   'Robb Ryerse': 13,
   'Demond Drummer': 14,
