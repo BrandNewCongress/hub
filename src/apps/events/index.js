@@ -126,6 +126,23 @@ events.post(
           gather_volunteers: true,
           allow_guests: true
         },
+        autoresponse: {
+          broadcaster_id: 21,
+          subject: `RSVP Confirmation: ${req.body.name}`,
+          body: `{{ recipient.first_name_or_friend }} --
+
+Thank you for your RSVP.
+
+{% include "mailing_event" %}
+
+If you need to update or cancel your RSVP, use this link:
+
+{{ edit_url }}
+
+And you can invite others to join you at the event with this link:
+
+{{ page_url }}`
+        },
         venue: venue,
         status: 'unlisted',
         show_guests: false,
