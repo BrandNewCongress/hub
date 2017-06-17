@@ -11,7 +11,7 @@ class Nationbuilder {
       newPath = `/api/v1/${newPath}`
     }
     let newParams = {}
-    Object.assign(newParams, params)    
+    Object.assign(newParams, params)
     newParams.access_token = process.env.NATIONBUILDER_TOKEN
     const response = await axios({
       method,
@@ -40,7 +40,8 @@ class Nationbuilder {
     utmSource,
     utmMedium,
     utmCampaign,
-    tags
+    tags,
+    tagsToRemove
   }) {
     let nameParts = null
     let firstName = null
@@ -80,6 +81,11 @@ class Nationbuilder {
       if (tags) {
         await this.addTagsToPerson(personId, tags)
       }
+
+      if (tagsToRemove) {
+        await this.removeTagsFromPerson(personId, tagsToRemove)
+      }
+
       const newRequest = {
         person: { }
       }
@@ -122,6 +128,14 @@ class Nationbuilder {
         }
       }})
     }
+  }
+
+  async removeTagsFromPerson(id, tags) {
+    await this.makeRequest('DELETE', `people/${id}/taggings`, {body: {
+      tagging: {
+        tag: tagsToRemove
+      }
+    }})
   }
 }
 
