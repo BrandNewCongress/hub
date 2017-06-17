@@ -47,14 +47,15 @@ async function saveKueJob(job) {
 
 const stripBadPunc = str => (str ? str.replace(/[",]/g, '') : str)
 
-const source = (req) => {
+let source = (req) => {
   const toMatch = [
-    req.headers.origin,
     req.body
       ? req.body.forceSource
-          ? req.body.forceSource
-          : req.body.candidate ? req.body.candidate : null
-      : null
+        ? req.body.forceSource
+        : req.body.candidate
+          ? req.body.candidate
+          : req.headers.origin
+      : req.headers.origin
   ].filter(m => m)
 
   return toMatch.map(m => {
@@ -212,7 +213,7 @@ app.post('/people', apiLog, async (req, res) => {
     const body = req.body
 
     const rawSources = source(req)
-    const signupSource = rawSources[1]
+    const signupSource = rawSources[0]
     const tags = rawSources.map(s => `Action: Joined Website: ${s}`)
 
     const createJob = queue.createJob('createPerson', {
@@ -223,6 +224,7 @@ app.post('/people', apiLog, async (req, res) => {
         zip: body.zip
       },
       tags: tags,
+      tagsToRemove: rawSources.map(s => `Action: Unsubscribed: ${s}`)
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
