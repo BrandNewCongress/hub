@@ -224,7 +224,7 @@ app.post('/people', apiLog, async (req, res) => {
         zip: body.zip
       },
       tags: tags,
-      tagsToRemove: rawSources.map(s => `Action: Unsubscribed: ${s}`)
+      tagsToRemove: rawSources.map(s => `Action: Unsubscribed: ${s}`),
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
       utmCampaign: body.utmCampaign
