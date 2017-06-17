@@ -133,7 +133,7 @@ class Nationbuilder {
   async removeTagsFromPerson(id, tags) {
     await this.makeRequest('DELETE', `people/${id}/taggings`, {body: {
       tagging: {
-        tag: tagsToRemove
+        tag: tags
       }
     }})
   }
