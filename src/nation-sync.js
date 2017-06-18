@@ -52,7 +52,7 @@ async function nbPersonToBSDCons(person) {
     if (!CONS_GROUP_MAP.hasOwnProperty(group)) {
       await bsd.createConstituentGroups([group])
       await refreshConsGroups()
-      log.error(`WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed. @sagard`)
+      log.error(`WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed. @cmarchibald`)
     }
   }
   
