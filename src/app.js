@@ -47,14 +47,12 @@ async function saveKueJob(job) {
 
 const stripBadPunc = str => (str ? str.replace(/[",]/g, '') : str)
 
-let source = (req) => {
+let source = req => {
   const toMatch = [
     req.body
       ? req.body.forceSource
         ? req.body.forceSource
-        : req.body.candidate
-          ? req.body.candidate
-          : req.headers.origin
+        : req.body.candidate ? req.body.candidate : req.headers.origin
       : req.headers.origin
   ].filter(m => m)
 
@@ -90,7 +88,7 @@ app.get('/cons_group/:id/count', async (req, res) => {
     process.env.BSD_API_SECRET
   )
   const consGroup = await bsd.getConstituentGroup(req.params.id)
-  res.send({ 
+  res.send({
     count: consGroup.members,
     unique_emails: consGroup.unique_emails,
     subscribed_emails: consGroup.unique_emails_subscribed
@@ -144,7 +142,7 @@ app.post('/nominations', apiLog, async (req, res) => {
     if (isValidFullBody(body)) {
       let sources = source(req, false)
       let tags = []
-      sources.forEach((s) => {
+      sources.forEach(s => {
         tags.push(`Action: Nominated Candidate: ${s}`)
       })
       const createJob = queue.create('createPerson', {
@@ -298,7 +296,7 @@ app.post('/volunteers', apiLog, async (req, res) => {
     }
 
     let sourceTags = source(req)
-    sourceTags = sourceTags.map((s) => `Action: Joined as Volunteer: ${s}`)
+    sourceTags = sourceTags.map(s => `Action: Joined as Volunteer: ${s}`)
 
     tags = tags.concat(sourceTags)
     log.info(tags)
@@ -327,6 +325,22 @@ app.post('/volunteers', apiLog, async (req, res) => {
       res.sendStatus(200)
     }
   }
+})
+
+app.get('/people/count', (req, res) => {
+  axios
+    .get('http://go.brandnewcongress.org/people-count')
+    .then(count => {
+      res.json({ count: count.data })
+    })
+    .catch(err => {
+      log.error(err)
+      if (res.body.redirect) {
+        res.redirect(res.body.redirect)
+      } else {
+        res.status(500).json({ err })
+      }
+    })
 })
 
 app.get('/conference-calls/upcoming', async (request, response) => {
@@ -451,7 +465,9 @@ ${otherDetails.join('\n')}
 })
 
 app.get('/donate', (req, res) => {
-  res.redirect('https://secure.actblue.com/contribute/page/bnc-candidates?refcode=brandnewcongress.org')
+  res.redirect(
+    'https://secure.actblue.com/contribute/page/bnc-candidates?refcode=brandnewcongress.org'
+  )
 })
 
 app.listen(port, () => {
