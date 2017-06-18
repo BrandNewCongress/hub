@@ -90,7 +90,11 @@ app.get('/cons_group/:id/count', async (req, res) => {
     process.env.BSD_API_SECRET
   )
   const consGroup = await bsd.getConstituentGroup(req.params.id)
-  res.send({ count: consGroup.members })
+  res.send({ 
+    count: consGroup.members,
+    unique_emails: consGroup.unique_emails,
+    subscribed_emails: consGroup.unique_emails_subscribed
+  })
 })
 
 app.get('/forms/:id/count', async (req, res) => {
@@ -323,22 +327,6 @@ app.post('/volunteers', apiLog, async (req, res) => {
       res.sendStatus(200)
     }
   }
-})
-
-app.get('/people/count', (req, res) => {
-  axios
-    .get('http://go.brandnewcongress.org/people-count')
-    .then(count => {
-      res.json({ count: count.data })
-    })
-    .catch(err => {
-      log.error(err)
-      if (res.body.redirect) {
-        res.redirect(res.body.redirect)
-      } else {
-        res.status(500).json({ err })
-      }
-    })
 })
 
 app.get('/conference-calls/upcoming', async (request, response) => {
