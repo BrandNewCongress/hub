@@ -416,7 +416,7 @@ module.exports = class BSD {
     }
 
     const consIdString = `${data.cons_id ? 'id="' + data.cons_id + '"' : ''} ${data.ext_id ? 'ext_id="' + data.ext_id + '"' : ''} ${data.ext_type ? 'ext_type="' + data.ext_type + '"' : ''}`
-    let params = `<?xml version="1.0" encoding="utf-8"?><api><cons${consIdString}>${generateXML(data)}</cons></api>`
+    let params = `<?xml version="1.0" encoding="utf-8"?><api><cons ${consIdString}>${generateXML(data)}</cons></api>`
 
     log.debug(params)
     let response = await this.request('/cons/set_constituent_data', params, 'POST')
@@ -632,6 +632,16 @@ module.exports = class BSD {
     return response
   }
 
+  async addExtIdsToConstituentGroup(groupId, extIds) {
+    let response = await this.request('/cons_group/add_ext_ids_to_group', { 
+      cons_group_id: groupId,
+      ext_type: 'nationbuilder_id',
+      ext_ids: extIds.join(',')
+    })
+    console.log('Response?', response)
+    return response
+  }
+
   async requestWrapper(options) {
     // These are methods for which we don't want to make a call to BSD when we are in dev
     let mockBSDMethodsInDev = ['/event/update_event', '/event/delete_event']
@@ -651,6 +661,7 @@ module.exports = class BSD {
       return requestPromise(options)
     }
   }
+
 
   async makeRESTRequest(callPath, params, method) {
     let finalURL = this.generateBSDURL(callPath, params, method)

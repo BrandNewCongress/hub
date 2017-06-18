@@ -52,11 +52,11 @@ async function nbPersonToBSDCons(person) {
     if (!CONS_GROUP_MAP.hasOwnProperty(group)) {
       await bsd.createConstituentGroups([group])
       await refreshConsGroups()
-      log.error(`WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed.`)
+      log.error(`WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed. @sagard`)
     }
   }
   
-  if (!person.email || consGroups.length === 0) {
+  if (consGroups.length === 0) {
     log.error(`WARNING: NB Person: ${person.id} did not sync. Either has no e-mail address or no suitable tags.`)
     return null
   }
@@ -106,6 +106,9 @@ async function nbPersonToBSDCons(person) {
       phone_type: 'home',
       is_primary: person.mobile ? 0 : 1
     })
+  }
+  if (person.external_id) {
+    consData.cons_id = person.external_id
   }
   if (phones.length > 0) {
     consData.cons_phone = phones
@@ -285,6 +288,102 @@ async function syncEvents() {
   log.info('Done syncing events!')
 }
 
+async function assignConsGroups() {
+  await refreshConsGroups()
+  const tagPrefixWhitelist = [
+    'Action:',
+    'Availability:',
+    'Skill:'
+  ]
+  function hasPrefix(tag) {
+    let foundPrefix = false
+    tagPrefixWhitelist.forEach((prefix) => {
+      if (tag.indexOf(prefix) === 0) {
+        foundPrefix = true
+      }
+    })
+    return foundPrefix
+  }
+  let consIDMap = {}
+  let count = 0
+  const csv = Baby.parseFiles('/Users/saikat/Downloads/nationbuilder-people-export-1261-2017-06-16.csv', {
+    header: true,
+    step: function(results) {
+      count = count + 1
+      console.log('Count', count)
+      const person = results.data[0]
+      const tags = person.tag_list.split(',').map((t) => t.trim())
+      let foundTag = false
+      for (let tagIndex = 0; tagIndex < tags.length; tagIndex++) {
+        const tag = tags[tagIndex]
+        if (!CONS_GROUP_MAP.hasOwnProperty(tag) && hasPrefix(tag)) {
+          log.error(`Tag not found: ${tag}`)
+        } else if (hasPrefix(tag)) {
+          foundTag = true
+          const consID = CONS_GROUP_MAP[tag]
+          if (!consIDMap.hasOwnProperty(consID)) {
+            consIDMap[consID] = []
+          }
+          consIDMap[consID].push(person.nationbuilder_id)
+        }
+      }
+    }
+  })
+
+  console.log('done parsing')
+  let consGroups = Object.keys(consIDMap)
+  for (let index = 0; index < consGroups.length; index++) {
+    const groupId = consGroups[index]
+    let idsToAdd = []
+    for (let innerIndex = 0; innerIndex < consIDMap[groupId].length; innerIndex++) {
+      if (innerIndex > 0 && innerIndex % 500 === 0) {
+        console.log('Adding ids', idsToAdd.length, groupId, idsToAdd[10])
+        await bsd.addExtIdsToConstituentGroup(groupId, idsToAdd)
+        idsToAdd = []
+      }
+      idsToAdd.push(consIDMap[groupId][innerIndex])
+    }
+    if (idsToAdd.length > 0) {
+      console.log('Adding ids at the end', idsToAdd.length, groupId, idsToAdd[10])
+      await bsd.addExtIdsToConstituentGroup(groupId, idsToAdd)
+      idsToAdd = []
+    }
+  }
+  console.log('done')
+}
+
+async function reimportNBPeople() {
+  await refreshConsGroups()
+  const csv = Baby.parseFiles('/Users/saikat/Downloads/resync.csv', {
+    header: true
+  })
+  let count = 0
+  const data = csv.data
+  for (let index = 0; index < data.length; index++) {
+    const person = data[index]
+    if (!person.Email) {
+      continue
+    }    
+    let results = await nationbuilder.makeRequest('GET', 'people/search', { params: {
+      limit: 100, 
+      external_id: person['Unique Constituent ID']
+    }})
+    let people = results.data.results
+    if (people.length > 1) {
+      console.log(people.map((p) => p.email))
+    }
+    if (people.length < 1) {
+      console.log('Not found', person['Unique Constituent ID'])
+      continue
+    }
+    const nbPerson = people[0]
+    count = count + 1
+    console.log(count, 'Syncing', nbPerson.email)
+    await nbPersonToBSDCons(nbPerson)
+  }
+  console.log('done!')
+}
+
 async function sync() {
   log.info('Starting sync...')
   await refreshConsGroups()
@@ -302,3 +401,4 @@ const timezoneMap = {
 }
 
 sync().catch((ex) => console.log(ex))
+//reimportNBPeople().catch((ex) => console.log(ex))
