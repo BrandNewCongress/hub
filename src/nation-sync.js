@@ -64,6 +64,7 @@ async function nbPersonToBSDCons(person) {
   const consGroupIds = consGroups.map((group) => ({ id: CONS_GROUP_MAP[group] }))
   const names = person.first_name.split(' ')
   const address = person.primary_address
+  const email = person.email
   const consData = {
     firstname: names[0] || null,
     middlename: names[1] || null,
@@ -73,8 +74,11 @@ async function nbPersonToBSDCons(person) {
     ext_id: person.id,
     ext_type: 'nationbuilder_id',
     employer: person.employer || null,
-    occupation: person.occupation || null,
-    cons_email: {
+    occupation: person.occupation || null
+  }
+
+  if (email) {
+    consData.cons_email = {
       email: person.email,
       is_subscribed: person.email_opt_in ? 1 : 0,
       is_primary: 1
@@ -115,6 +119,7 @@ async function nbPersonToBSDCons(person) {
   }
   consData.cons_group = consGroupIds
   let cons = null
+  console.log(consData)
   try {
     cons = await bsd.setConstituentData(consData)
   } catch (ex)  {
@@ -354,32 +359,32 @@ async function assignConsGroups() {
 
 async function reimportNBPeople() {
   await refreshConsGroups()
-  const csv = Baby.parseFiles('/Users/saikat/Downloads/resync.csv', {
+  const csv = Baby.parseFiles('/Users/saikat/Downloads/email-less.csv', {
     header: true
   })
   let count = 0
   const data = csv.data
   for (let index = 0; index < data.length; index++) {
     const person = data[index]
-    if (!person.Email) {
-      continue
-    }    
-    let results = await nationbuilder.makeRequest('GET', 'people/search', { params: {
-      limit: 100, 
-      external_id: person['Unique Constituent ID']
-    }})
-    let people = results.data.results
-    if (people.length > 1) {
-      console.log(people.map((p) => p.email))
+    console.log(index, person.nationbuilder_id)
+    const newPerson = {}
+    Object.assign(newPerson, person)
+    newPerson.tags = person.tag_list.split(',')
+    newPerson.id = person.nationbuilder_id
+    const address = {
+      address1: person.primary_address1,
+      address2: person.primary_address2,
+      city: person.primary_city,
+      state: person.primary_state,
+      zip: person.primary_zip,
+      country: person.primary_country
     }
-    if (people.length < 1) {
-      console.log('Not found', person['Unique Constituent ID'])
-      continue
-    }
-    const nbPerson = people[0]
-    count = count + 1
-    console.log(count, 'Syncing', nbPerson.email)
-    await nbPersonToBSDCons(nbPerson)
+    newPerson.phone = person.phone_number
+    newPerson.mobile = person.mobile_number
+    newPerson.primary_address = address
+    console.log(person.created_at)
+    newPerson.created_at = moment(person.created_at, 'MM/DD/YYYY hh:mm a').format('YYYY-MM-DDTHH:mm:ssZ')
+    await nbPersonToBSDCons(newPerson)
   }
   console.log('done!')
 }
