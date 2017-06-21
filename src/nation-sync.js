@@ -30,7 +30,7 @@ async function refreshConsGroups() {
   log.info('Done refreshing cons!')
 }
 
-async function nbPersonToBSDCons(person) {
+async function nbPersonToBSDCons(person, forceSync=false) {
   const tagPrefixWhitelist = [
     'Action:',
     'Availability:',
@@ -56,7 +56,7 @@ async function nbPersonToBSDCons(person) {
     }
   }
 
-  if (consGroups.length === 0) {
+  if (consGroups.length === 0 && !forceSync) {
     log.error(`WARNING: NB Person: ${person.id} did not sync. Either has no e-mail address or no suitable tags.`)
     return null
   }
@@ -119,7 +119,6 @@ async function nbPersonToBSDCons(person) {
   }
   consData.cons_group = consGroupIds
   let cons = null
-  console.log(consData)
   try {
     cons = await bsd.setConstituentData(consData)
   } catch (ex)  {
@@ -165,6 +164,7 @@ async function syncPeople() {
 }
 
 async function syncEvents() {
+  await refreshConsGroups()
   log.info('Syncing events to BSD...')
   let results = await nationbuilder.makeRequest('GET', 'sites/brandnewcongress/pages/events', { params: {
     starting: moment().subtract(1, 'days').format('YYYY-MM-DD'),
@@ -192,9 +192,19 @@ async function syncEvents() {
   for (let index = 0; index < allNBEvents.length; index++) {
     const event = allNBEvents[index]
     log.info('Syncing event', event.name)
-    let nbPerson = await nationbuilder.makeRequest('GET', `people/${event.author_id}`, {})
+    const contactInfo = event.contact
+    const personInfo = {
+      full_name: contactInfo.name,
+      phone: contactInfo.phone,
+      email: contactInfo.email
+    }
+    let nbPerson = await nationbuilder.makeRequest('POST', 'people', {
+      body: {
+        person: personInfo
+      }
+    })
     nbPerson = nbPerson.data.person
-    const bsdCons = await nbPersonToBSDCons(nbPerson)
+    const bsdCons = await nbPersonToBSDCons(nbPerson, true)
     consId = bsdCons.id
     if (!consId) {
       log.error(`Somehow there is no BSD person associated with NB person: ${event.author_id}`)
@@ -256,6 +266,7 @@ async function syncEvents() {
         event: updateEvent
       }})
     }
+
     // SYNC RSVPS TODO
     /*let results = await nationbuilder.makeRequest('GET', `sites/brandnewcongress/pages/events/${event.id}/rsvps`, { params: { limit: 100 }})
     let eventRSVPs = []
