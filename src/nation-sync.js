@@ -55,7 +55,7 @@ async function nbPersonToBSDCons(person) {
       log.error(`WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed. @cmarchibald`)
     }
   }
-  
+
   if (consGroups.length === 0) {
     log.error(`WARNING: NB Person: ${person.id} did not sync. Either has no e-mail address or no suitable tags.`)
     return null
@@ -136,7 +136,7 @@ async function syncPeople() {
     syncSince = now
   }
   let results = await nationbuilder.makeRequest('GET', 'people/search', { params: {
-    limit: 100, 
+    limit: 100,
     updated_since: syncSince
   } })
   const peopleRecords = []
@@ -151,9 +151,9 @@ async function syncPeople() {
       await nbPersonToBSDCons(person)
     }
     if (results.data.next) {
-      const next = results.data.next.split('?')    
-      results = await nationbuilder.makeRequest('GET', results.data.next, { params: { 
-        limit: 100 
+      const next = results.data.next.split('?')
+      results = await nationbuilder.makeRequest('GET', results.data.next, { params: {
+        limit: 100
       }})
       count = count + 100
     } else {
@@ -182,7 +182,7 @@ async function syncEvents() {
     })
 
     if (results.data.next) {
-      const next = results.data.next.split('?')    
+      const next = results.data.next.split('?')
       results = await nationbuilder.makeRequest('GET', results.data.next, { params: { limit: 100 } })
     } else {
       break
@@ -248,21 +248,21 @@ async function syncEvents() {
     }
 
     // CREATION
-    if (!event.external_id) {    
+    if (!event.external_id) {
       const createdEvent = await bsd.createEvent(bsdEvent)
       const updateEvent = Object.assign({}, event)
       updateEvent.external_id = createdEvent.event_id_obfuscated
       await nationbuilder.makeRequest('PUT', `sites/brandnewcongress/pages/events/${event.id}`, { body: {
         event: updateEvent
-      }})    
-    }    
+      }})
+    }
     // SYNC RSVPS TODO
     /*let results = await nationbuilder.makeRequest('GET', `sites/brandnewcongress/pages/events/${event.id}/rsvps`, { params: { limit: 100 }})
     let eventRSVPs = []
     while (true) {
       eventRSVPs.concat(results.data.results)
       if (results.data.next) {
-        const next = results.data.next.split('?')    
+        const next = results.data.next.split('?')
         results = await nationbuilder.makeRequest('GET', results.data.next, { params: { limit: 100 } })
       } else {
         break
@@ -288,7 +288,7 @@ async function syncEvents() {
     }
   }
   log.info(`Deleting ${eventsToDelete.length} events...`)
-  const responses = await bsd.deleteEvents(eventsToDelete)
+  // const responses = await bsd.deleteEvents(eventsToDelete)
   console.log(responses)
   log.info('Done syncing events!')
 }
