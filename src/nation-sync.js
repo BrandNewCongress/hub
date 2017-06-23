@@ -191,7 +191,7 @@ async function syncEvents() {
 
   for (let index = 0; index < allNBEvents.length; index++) {
     const event = allNBEvents[index]
-    log.info('Syncing event', event.name)
+    log.info('Syncing event', event.id, event.name)
     const contactInfo = event.contact
     const personInfo = {
       full_name: contactInfo.name,
@@ -243,8 +243,10 @@ async function syncEvents() {
       bsdEvent.venue_country = address.country_code
     }
 
+    let bsdEventID = null
     if (event.external_id) {
       bsdEvent.event_id_obfuscated = event.external_id
+      bsdEventID = bsdEvent.event_id_obfuscated
       try {
         await bsd.updateEvent(bsdEvent)
       } catch (ex) {
@@ -262,16 +264,17 @@ async function syncEvents() {
       const createdEvent = await bsd.createEvent(bsdEvent)
       const updateEvent = Object.assign({}, event)
       updateEvent.external_id = createdEvent.event_id_obfuscated
+      bsdEventID = createdEvent.event_id_obfuscated
       await nationbuilder.makeRequest('PUT', `sites/brandnewcongress/pages/events/${event.id}`, { body: {
         event: updateEvent
       }})
     }
 
     // SYNC RSVPS TODO
-    /*let results = await nationbuilder.makeRequest('GET', `sites/brandnewcongress/pages/events/${event.id}/rsvps`, { params: { limit: 100 }})
+    let results = await nationbuilder.makeRequest('GET', `sites/brandnewcongress/pages/events/${event.id}/rsvps`, { params: { limit: 100 }})
     let eventRSVPs = []
     while (true) {
-      eventRSVPs.concat(results.data.results)
+      eventRSVPs = eventRSVPs.concat(results.data.results)
       if (results.data.next) {
         const next = results.data.next.split('?')
         results = await nationbuilder.makeRequest('GET', results.data.next, { params: { limit: 100 } })
@@ -279,8 +282,33 @@ async function syncEvents() {
         break
       }
     }
-    */
+    log.info(`Syncing ${eventRSVPs.length} RSVPs...`) 
+    for (let rsvpIndex = 0; rsvpIndex < eventRSVPs.length; rsvpIndex++) {
+      const rsvp = eventRSVPs[rsvpIndex]
+      let person = await nationbuilder.makeRequest('GET', `people/${rsvp.person_id}`, {})
+      person = person.data.person
+      if (person.email) {
+        try {
+          await bsd.addRSVPToEvent({
+            event_id_obfuscated: bsdEventID,
+            email: person.email,
+            zip: person.primary_address && person.primary_address.zip ? person.primary_address.zip : event.venue.address.zip
+          })
+        } catch (ex) {
+          if (ex.message && JSON.parse(ex.message).error === 'event_rsvp_error') {
+            await bsd.addRSVPToEvent({
+              event_id_obfuscated: bsdEventID,
+              email: person.email,
+              zip: event.venue.address.zip
+            })
+          } else {
+            throw ex
+          }
+        }
+      }
+    }
   }
+  /*
   const bsdEvents = await bsd.searchEvents({
     date_start: '2000-01-01 00:00:00'
   })
@@ -301,6 +329,7 @@ async function syncEvents() {
   log.info(`Deleting ${eventsToDelete.length} events...`)
   // const responses = await bsd.deleteEvents(eventsToDelete)
   console.log(responses)
+  */
   log.info('Done syncing events!')
 }
 
@@ -405,7 +434,7 @@ async function sync() {
   await refreshConsGroups()
   await syncPeople()
   await syncEvents()
-  setTimeout(sync, 600000)
+  setTimeout(sync, 1200000)
   log.info('Done syncing!')
 }
 
@@ -416,5 +445,4 @@ const timezoneMap = {
   'Mountain Time (US & Canada)' : 'US/Mountain'
 }
 
-sync().catch((ex) => console.log(ex))
-//reimportNBPeople().catch((ex) => console.log(ex))
+syncEvents().catch((ex) => console.log(ex))
