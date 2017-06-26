@@ -440,7 +440,7 @@ class BNCAirtable {
       State: stateId ? [stateId] : null,
       'Congressional District': districtId ? [districtId] : null,
       Person: [nominee.id],
-      'Source Team': sourceTeam ? [sourceTeam.id] : null,
+      'Source Team': sourceTeam ? [sourceTeam.id] : null
     })
 
     const createdNomination = await this.create('Nominations', nominationToSubmit)
