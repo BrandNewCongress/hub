@@ -11,6 +11,7 @@ const moment = require('moment')
 const airtableSingleton = require('./airtable')
 const gecko = require('geckoboard')(process.env.GECKOBOARD_SECRET)
 const geckoboard = bluebird.promisifyAll(gecko.datasets)
+const Baby = require('babyparse')
 
 redisClient.on("error", function (err) {
   log.error("Error " + err)
@@ -148,7 +149,6 @@ async function syncAirtableToGeckoboard() {
       fields: metricsSchema
     })
   } catch (ex) {
-    console.log(ex)
     await geckoboard.deleteAsync('campaigns.metrics.daily')
     dailiesDataset = await geckoboard.findOrCreateAsync({
       id: 'campaigns.metrics.daily',
@@ -193,7 +193,6 @@ async function syncAirtableToGeckoboard() {
       amountRaised = totalMetric.total_amount_raised
       contributions = totalMetric.total_contributions
     }
-    console.log(metric.get('Date'), campaign, amountRaised, contributions)
     lastTotals[campaign] = totalMetric
     totalMetrics.push(totalMetric)
     dailyMetrics.push({
@@ -242,9 +241,54 @@ async function syncActBlueToAirtable() {
   }
 }
 
+async function syncHistoricalDataToAirtable() {
+  const airtable = new airtableSingleton.BNCAirtable('app6OLwbE5uJYDyRV')
+  const atCampaigns = await airtable.findAll('Campaigns')
+  const campaignsHash = {}
+  atCampaigns.forEach((campaign) => {
+    campaignsHash[campaign.get('Campaign')] = campaign.id
+  })
+  const totalCampaigns = []
+  campaigns.forEach((c) => {
+    totalCampaigns.push(c.name)
+  })
+  totalCampaigns.push(':Brand New Congress')
+  totalCampaigns.push(':Justice Democrats')
+  for (let index = 0; index < totalCampaigns.length; index++)   {
+    let campaignName = totalCampaigns[index]
+    if (campaignName === ':Brand New Congress')
+      campaignName = 'Brand New Congress'
+    else if (campaignName === ':Justice Democrats')
+      campaignName = 'Justice Democrats'
+    let totalAmountRaised = 0
+    let totalContributions = 0
+    let currentDate = null
+    const file = totalCampaigns[index].split(':')[1].trim().replace(/\s/g, '-').toLowerCase()
+    console.log(file)
+    const csv = Baby.parseFiles(`/Users/saikat/Downloads/${file}.csv`, {
+      header: true }).data
+    for (let inner = 0; inner < csv.length; inner++) {
+      let newDate = moment(csv[inner]['Date'])
+      if (currentDate !== null && newDate.date() !== currentDate.date()) {
+        console.log('Hitting airtable...', currentDate)
+        await airtable.create('Metrics', {
+          'Campaign': [campaignsHash[campaignName]],
+          'Date': currentDate.toISOString(),
+          'Total Amount Raised': parseFloat(totalAmountRaised, 10),
+          'Total Contributions': parseInt(totalContributions, 10)
+        })
+        currentDate = newDate        
+      }
+      currentDate = newDate
+      totalAmountRaised += parseFloat(csv[inner]['Amount'])
+      totalContributions += 1
+    }
+  }
+}
+
 async function sync() {
   await syncActBlueToAirtable()
   await syncAirtableToGeckoboard()
 }
 
-sync().catch((ex) => log.error(ex))
+syncHistoricalDataToAirtable().catch((ex) => log.error(ex))
