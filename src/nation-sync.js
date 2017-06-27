@@ -282,7 +282,7 @@ async function syncEvents() {
         break
       }
     }
-    log.info(`Syncing ${eventRSVPs.length} RSVPs...`) 
+    log.info(`Syncing ${eventRSVPs.length} RSVPs...`)
     for (let rsvpIndex = 0; rsvpIndex < eventRSVPs.length; rsvpIndex++) {
       const rsvp = eventRSVPs[rsvpIndex]
       let person = await nationbuilder.makeRequest('GET', `people/${rsvp.person_id}`, {})
@@ -434,7 +434,6 @@ async function sync() {
   await refreshConsGroups()
   await syncPeople()
   await syncEvents()
-  setTimeout(sync, 1200000)
   log.info('Done syncing!')
 }
 
@@ -445,4 +444,4 @@ const timezoneMap = {
   'Mountain Time (US & Canada)' : 'US/Mountain'
 }
 
-syncEvents().catch((ex) => console.log(ex))
+sync().catch((ex) => console.log(ex))
