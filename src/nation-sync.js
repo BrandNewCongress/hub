@@ -14,6 +14,17 @@ const bsd = new bsdConstructor(
   process.env.BSD_API_SECRET
 )
 
+const multiClients = new Array(5)
+  .fill(null)
+  .map(
+    (_, idx) =>
+      new bsdConstructor(
+        process.env.BSD_API_URL,
+        `syncer-${idx + 1}`,
+        process.env[`BSD_${idx + 1}`]
+      )
+  )
+
 redisClient.on('error', function(err) {
   log.error('Error ' + err)
 })
@@ -64,17 +75,13 @@ async function deleteEmptyConsGroups() {
       group =>
         tagPrefixWhitelist.filter(prefix => group.startsWith(prefix)).length > 0
     )
-    .filter(group =>
-      !tags.includes(group)
-    )
-    .map(group =>
-      CONS_GROUP_MAP[group]
-    )
+    .filter(group => !tags.includes(group))
+    .map(group => CONS_GROUP_MAP[group])
 
   let result
   if (consGroupsToDelete.length > 0) {
     result = await bsd.deleteConstituentGroups(consGroupsToDelete)
-  }  else {
+  } else {
     result = 'No cons groups to delete'
   }
 
@@ -82,7 +89,12 @@ async function deleteEmptyConsGroups() {
   return result
 }
 
-async function nbPersonToBSDCons(person, forceSync = false) {
+async function nbPersonToBSDCons(person, options) {
+  const forceSync = options.forceSync || false
+
+  // local instance of bsd constructor with potentially different key
+  const b = options.bsd || bsd
+
   const consGroups = person.tags.filter(tag => {
     let foundPrefix = false
     tagPrefixWhitelist.forEach(prefix => {
@@ -96,7 +108,7 @@ async function nbPersonToBSDCons(person, forceSync = false) {
   for (let index = 0; index < consGroups.length; index++) {
     const group = consGroups[index]
     if (!CONS_GROUP_MAP.hasOwnProperty(group)) {
-      await bsd.createConstituentGroups([group])
+      await b.createConstituentGroups([group])
       await refreshConsGroups()
       log.error(
         `WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed. @cmarchibald`
@@ -172,7 +184,7 @@ async function nbPersonToBSDCons(person, forceSync = false) {
   consData.cons_group = consGroupIds
   let cons = null
   try {
-    cons = await bsd.setConstituentData(consData)
+    cons = await b.setConstituentData(consData)
   } catch (ex) {
     log.info(consData)
     log.error(ex)
@@ -199,11 +211,14 @@ async function syncPeople() {
   while (true) {
     const people = results.data.results
     const length = people.length
-    for (let index = 0; index < length; index++) {
-      const person = people[index]
-      log.info('Syncing person: ', person.id, person.email)
-      await nbPersonToBSDCons(person)
-    }
+
+    // Split into groups of 5
+    const batches = batch(people)
+
+    console.time('one batch')
+    await Promise.all(batches.map((batch, idx) => promiseBatch(batch, idx)))
+    console.timeEnd('one batch')
+
     if (results.data.next) {
       const next = results.data.next.split('?')
       results = await nationbuilder.makeRequest('GET', results.data.next, {
@@ -269,7 +284,7 @@ async function syncEvents() {
       }
     })
     nbPerson = nbPerson.data.person
-    const bsdCons = await nbPersonToBSDCons(nbPerson, true)
+    const bsdCons = await nbPersonToBSDCons(nbPerson, { forceSync: true })
     consId = bsdCons.id
     if (!consId) {
       log.error(
@@ -555,4 +570,29 @@ async function reimportNBPeople() {
     await nbPersonToBSDCons(newPerson)
   }
   console.log('done!')
+}
+
+/*
+ * Helper zone for speeding up sync
+ */
+
+// [1,2,3,4,5,6,7] -> [[1,2,3,4,5], [6,7]]
+function batch(arr) {
+  let start = 0
+  let result = []
+  while (start < arr.length) {
+    result.push(arr.slice(start, start + 5))
+    start = start + 5
+  }
+  return result
+}
+
+function promiseBatch(batch, n) {
+  const syncer = n % 5
+  return Promise.all(
+    batch.map(p => {
+      log.info(`Syncing person ${p.id} ${p.email} with syncer ${syncer}`)
+      return nbPersonToBSDCons(p, { bsd: multiClients[syncer] })
+    })
+  )
 }
