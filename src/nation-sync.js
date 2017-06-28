@@ -8,19 +8,24 @@ const bluebird = require('bluebird')
 bluebird.promisifyAll(redis.RedisClient.prototype)
 bluebird.promisifyAll(redis.Multi.prototype)
 const redisClient = redis.createClient(process.env.REDIS_URL)
-const bsd = new bsdConstructor(process.env.BSD_API_URL, process.env.BSD_API_ID, process.env.BSD_API_SECRET)
+const bsd = new bsdConstructor(
+  process.env.BSD_API_URL,
+  process.env.BSD_API_ID,
+  process.env.BSD_API_SECRET
+)
 
-redisClient.on("error", function (err) {
-  log.error("Error " + err)
+redisClient.on('error', function(err) {
+  log.error('Error ' + err)
 })
 
 let CONS_GROUP_MAP = {}
+const tagPrefixWhitelist = ['Action:', 'Availability:', 'Skill:']
 
 async function refreshConsGroups() {
   log.info('Refreshing cons groups...')
   CONS_GROUP_MAP = {}
   const groups = await bsd.listConstituentGroups()
-  groups.forEach((group) => {
+  groups.forEach(group => {
     const groupName = group['name'][0]
     if (CONS_GROUP_MAP.hasOwnProperty(groupName)) {
       log.error(`Duplicate cons groups: ${groupName}`)
@@ -30,16 +35,57 @@ async function refreshConsGroups() {
   log.info('Done refreshing cons!')
 }
 
-async function nbPersonToBSDCons(person, forceSync=false) {
-  const tagPrefixWhitelist = [
-    'Action:',
-    'Availability:',
-    'Skill:'
-  ]
+async function deleteEmptyConsGroups() {
+  await refreshConsGroups()
 
-  const consGroups = person.tags.filter((tag) => {
+  let tags = []
+  let results = await nationbuilder.makeRequest('GET', 'tags', {
+    params: {
+      limit: 100
+    }
+  })
+
+  while (true) {
+    tags = tags.concat(results.data.results)
+    if (results.data.next) {
+      let next = results.data.next.split('?')
+      results = await nationbuilder.makeRequest('GET', results.data.next, {
+        params: { limit: 100 }
+      })
+    } else {
+      break
+    }
+  }
+
+  tags = tags.map(t => t.name)
+
+  const consGroupsToDelete = Object.keys(CONS_GROUP_MAP)
+    .filter(
+      group =>
+        tagPrefixWhitelist.filter(prefix => group.startsWith(prefix)).length > 0
+    )
+    .filter(group =>
+      !tags.includes(group)
+    )
+    .map(group =>
+      CONS_GROUP_MAP[group]
+    )
+
+  let result
+  if (consGroupsToDelete.length > 0) {
+    result = await bsd.deleteConstituentGroups(consGroupsToDelete)
+  }  else {
+    result = 'No cons groups to delete'
+  }
+
+  console.log(result)
+  return result
+}
+
+async function nbPersonToBSDCons(person, forceSync = false) {
+  const consGroups = person.tags.filter(tag => {
     let foundPrefix = false
-    tagPrefixWhitelist.forEach((prefix) => {
+    tagPrefixWhitelist.forEach(prefix => {
       if (tag.indexOf(prefix) === 0) {
         foundPrefix = true
       }
@@ -52,16 +98,20 @@ async function nbPersonToBSDCons(person, forceSync=false) {
     if (!CONS_GROUP_MAP.hasOwnProperty(group)) {
       await bsd.createConstituentGroups([group])
       await refreshConsGroups()
-      log.error(`WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed. @cmarchibald`)
+      log.error(
+        `WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed. @cmarchibald`
+      )
     }
   }
 
   if (consGroups.length === 0 && !forceSync) {
-    log.error(`WARNING: NB Person: ${person.id} did not sync. Either has no e-mail address or no suitable tags.`)
+    log.error(
+      `WARNING: NB Person: ${person.id} did not sync. Either has no e-mail address or no suitable tags.`
+    )
     return null
   }
 
-  const consGroupIds = consGroups.map((group) => ({ id: CONS_GROUP_MAP[group] }))
+  const consGroupIds = consGroups.map(group => ({ id: CONS_GROUP_MAP[group] }))
   const names = person.first_name.split(' ')
   const address = person.primary_address
   const email = person.email
@@ -86,14 +136,16 @@ async function nbPersonToBSDCons(person, forceSync=false) {
   }
 
   if (address) {
-    consData.cons_addr = [{
-      addr1: address.address1 || null,
-      addr2: address.address2 || null,
-      city: address.city || null,
-      state_cd: address.state || null,
-      zip: address.zip || null,
-      country: address.country_code || null
-    }]
+    consData.cons_addr = [
+      {
+        addr1: address.address1 || null,
+        addr2: address.address2 || null,
+        city: address.city || null,
+        state_cd: address.state || null,
+        zip: address.zip || null,
+        country: address.country_code || null
+      }
+    ]
   }
   const phones = []
   if (person.mobile) {
@@ -121,12 +173,13 @@ async function nbPersonToBSDCons(person, forceSync=false) {
   let cons = null
   try {
     cons = await bsd.setConstituentData(consData)
-  } catch (ex)  {
+  } catch (ex) {
     log.info(consData)
     log.error(ex)
   }
   return cons
 }
+
 async function syncPeople() {
   const now = moment().subtract(1, 'seconds').format('YYYY-MM-DDTHH:mm:ssZ')
   let syncSince = await redisClient.getAsync('nationsync:lastsync')
@@ -134,10 +187,12 @@ async function syncPeople() {
   if (!syncSince) {
     syncSince = now
   }
-  let results = await nationbuilder.makeRequest('GET', 'people/search', { params: {
-    limit: 100,
-    updated_since: syncSince
-  } })
+  let results = await nationbuilder.makeRequest('GET', 'people/search', {
+    params: {
+      limit: 100,
+      updated_since: syncSince
+    }
+  })
   const peopleRecords = []
 
   let count = 0
@@ -151,9 +206,11 @@ async function syncPeople() {
     }
     if (results.data.next) {
       const next = results.data.next.split('?')
-      results = await nationbuilder.makeRequest('GET', results.data.next, { params: {
-        limit: 100
-      }})
+      results = await nationbuilder.makeRequest('GET', results.data.next, {
+        params: {
+          limit: 100
+        }
+      })
       count = count + 100
     } else {
       break
@@ -166,16 +223,22 @@ async function syncPeople() {
 async function syncEvents() {
   await refreshConsGroups()
   log.info('Syncing events to BSD...')
-  let results = await nationbuilder.makeRequest('GET', 'sites/brandnewcongress/pages/events', { params: {
-    starting: moment().subtract(1, 'days').format('YYYY-MM-DD'),
-    limit: 100
-  } })
+  let results = await nationbuilder.makeRequest(
+    'GET',
+    'sites/brandnewcongress/pages/events',
+    {
+      params: {
+        starting: moment().subtract(1, 'days').format('YYYY-MM-DD'),
+        limit: 100
+      }
+    }
+  )
 
   // Grab all NB events
   const allNBEvents = []
-  while(true) {
+  while (true) {
     const events = results.data.results
-    events.forEach((event) => {
+    events.forEach(event => {
       if (event.status === 'published') {
         allNBEvents.push(event)
       }
@@ -183,7 +246,9 @@ async function syncEvents() {
 
     if (results.data.next) {
       const next = results.data.next.split('?')
-      results = await nationbuilder.makeRequest('GET', results.data.next, { params: { limit: 100 } })
+      results = await nationbuilder.makeRequest('GET', results.data.next, {
+        params: { limit: 100 }
+      })
     } else {
       break
     }
@@ -207,13 +272,19 @@ async function syncEvents() {
     const bsdCons = await nbPersonToBSDCons(nbPerson, true)
     consId = bsdCons.id
     if (!consId) {
-      log.error(`Somehow there is no BSD person associated with NB person: ${event.author_id}`)
+      log.error(
+        `Somehow there is no BSD person associated with NB person: ${event.author_id}`
+      )
       break
     }
     const startTime = event.start_time
     const timezone = timezoneMap[event.time_zone]
-    const startDatetimeSystem = moment.tz(startTime, timezone).format('YYYY-MM-DD HH:mm:ss')
-    const duration = moment.duration(moment(event.end_time).diff(moment(event.start_time))).asMinutes()
+    const startDatetimeSystem = moment
+      .tz(startTime, timezone)
+      .format('YYYY-MM-DD HH:mm:ss')
+    const duration = moment
+      .duration(moment(event.end_time).diff(moment(event.start_time)))
+      .asMinutes()
     const bsdEvent = {
       name: event.name,
       event_type_id: 1,
@@ -265,19 +336,31 @@ async function syncEvents() {
       const updateEvent = Object.assign({}, event)
       updateEvent.external_id = createdEvent.event_id_obfuscated
       bsdEventID = createdEvent.event_id_obfuscated
-      await nationbuilder.makeRequest('PUT', `sites/brandnewcongress/pages/events/${event.id}`, { body: {
-        event: updateEvent
-      }})
+      await nationbuilder.makeRequest(
+        'PUT',
+        `sites/brandnewcongress/pages/events/${event.id}`,
+        {
+          body: {
+            event: updateEvent
+          }
+        }
+      )
     }
 
     // SYNC RSVPS TODO
-    let results = await nationbuilder.makeRequest('GET', `sites/brandnewcongress/pages/events/${event.id}/rsvps`, { params: { limit: 100 }})
+    let results = await nationbuilder.makeRequest(
+      'GET',
+      `sites/brandnewcongress/pages/events/${event.id}/rsvps`,
+      { params: { limit: 100 } }
+    )
     let eventRSVPs = []
     while (true) {
       eventRSVPs = eventRSVPs.concat(results.data.results)
       if (results.data.next) {
         const next = results.data.next.split('?')
-        results = await nationbuilder.makeRequest('GET', results.data.next, { params: { limit: 100 } })
+        results = await nationbuilder.makeRequest('GET', results.data.next, {
+          params: { limit: 100 }
+        })
       } else {
         break
       }
@@ -285,17 +368,26 @@ async function syncEvents() {
     log.info(`Syncing ${eventRSVPs.length} RSVPs...`)
     for (let rsvpIndex = 0; rsvpIndex < eventRSVPs.length; rsvpIndex++) {
       const rsvp = eventRSVPs[rsvpIndex]
-      let person = await nationbuilder.makeRequest('GET', `people/${rsvp.person_id}`, {})
+      let person = await nationbuilder.makeRequest(
+        'GET',
+        `people/${rsvp.person_id}`,
+        {}
+      )
       person = person.data.person
       if (person.email) {
         try {
           await bsd.addRSVPToEvent({
             event_id_obfuscated: bsdEventID,
             email: person.email,
-            zip: person.primary_address && person.primary_address.zip ? person.primary_address.zip : event.venue.address.zip
+            zip: person.primary_address && person.primary_address.zip
+              ? person.primary_address.zip
+              : event.venue.address.zip
           })
         } catch (ex) {
-          if (ex.message && JSON.parse(ex.message).error === 'event_rsvp_error') {
+          if (
+            ex.message &&
+            JSON.parse(ex.message).error === 'event_rsvp_error'
+          ) {
             await bsd.addRSVPToEvent({
               event_id_obfuscated: bsdEventID,
               email: person.email,
@@ -330,19 +422,16 @@ async function syncEvents() {
   // const responses = await bsd.deleteEvents(eventsToDelete)
   console.log(responses)
   */
+
   log.info('Done syncing events!')
 }
 
 async function assignConsGroups() {
   await refreshConsGroups()
-  const tagPrefixWhitelist = [
-    'Action:',
-    'Availability:',
-    'Skill:'
-  ]
+  const tagPrefixWhitelist = ['Action:', 'Availability:', 'Skill:']
   function hasPrefix(tag) {
     let foundPrefix = false
-    tagPrefixWhitelist.forEach((prefix) => {
+    tagPrefixWhitelist.forEach(prefix => {
       if (tag.indexOf(prefix) === 0) {
         foundPrefix = true
       }
@@ -351,36 +440,43 @@ async function assignConsGroups() {
   }
   let consIDMap = {}
   let count = 0
-  const csv = Baby.parseFiles('/Users/saikat/Downloads/nationbuilder-people-export-1261-2017-06-16.csv', {
-    header: true,
-    step: function(results) {
-      count = count + 1
-      console.log('Count', count)
-      const person = results.data[0]
-      const tags = person.tag_list.split(',').map((t) => t.trim())
-      let foundTag = false
-      for (let tagIndex = 0; tagIndex < tags.length; tagIndex++) {
-        const tag = tags[tagIndex]
-        if (!CONS_GROUP_MAP.hasOwnProperty(tag) && hasPrefix(tag)) {
-          log.error(`Tag not found: ${tag}`)
-        } else if (hasPrefix(tag)) {
-          foundTag = true
-          const consID = CONS_GROUP_MAP[tag]
-          if (!consIDMap.hasOwnProperty(consID)) {
-            consIDMap[consID] = []
+  const csv = Baby.parseFiles(
+    '/Users/saikat/Downloads/nationbuilder-people-export-1261-2017-06-16.csv',
+    {
+      header: true,
+      step: function(results) {
+        count = count + 1
+        console.log('Count', count)
+        const person = results.data[0]
+        const tags = person.tag_list.split(',').map(t => t.trim())
+        let foundTag = false
+        for (let tagIndex = 0; tagIndex < tags.length; tagIndex++) {
+          const tag = tags[tagIndex]
+          if (!CONS_GROUP_MAP.hasOwnProperty(tag) && hasPrefix(tag)) {
+            log.error(`Tag not found: ${tag}`)
+          } else if (hasPrefix(tag)) {
+            foundTag = true
+            const consID = CONS_GROUP_MAP[tag]
+            if (!consIDMap.hasOwnProperty(consID)) {
+              consIDMap[consID] = []
+            }
+            consIDMap[consID].push(person.nationbuilder_id)
           }
-          consIDMap[consID].push(person.nationbuilder_id)
         }
       }
     }
-  })
+  )
 
   console.log('done parsing')
   let consGroups = Object.keys(consIDMap)
   for (let index = 0; index < consGroups.length; index++) {
     const groupId = consGroups[index]
     let idsToAdd = []
-    for (let innerIndex = 0; innerIndex < consIDMap[groupId].length; innerIndex++) {
+    for (
+      let innerIndex = 0;
+      innerIndex < consIDMap[groupId].length;
+      innerIndex++
+    ) {
       if (innerIndex > 0 && innerIndex % 500 === 0) {
         console.log('Adding ids', idsToAdd.length, groupId, idsToAdd[10])
         await bsd.addExtIdsToConstituentGroup(groupId, idsToAdd)
@@ -389,13 +485,42 @@ async function assignConsGroups() {
       idsToAdd.push(consIDMap[groupId][innerIndex])
     }
     if (idsToAdd.length > 0) {
-      console.log('Adding ids at the end', idsToAdd.length, groupId, idsToAdd[10])
+      console.log(
+        'Adding ids at the end',
+        idsToAdd.length,
+        groupId,
+        idsToAdd[10]
+      )
       await bsd.addExtIdsToConstituentGroup(groupId, idsToAdd)
       idsToAdd = []
     }
   }
   console.log('done')
 }
+
+async function sync() {
+  log.info('Starting sync...')
+  await refreshConsGroups()
+  await syncPeople()
+  await syncEvents()
+  log.info('Done syncing!')
+}
+
+const timezoneMap = {
+  'Eastern Time (US & Canada)': 'US/Eastern',
+  'Central Time (US & Canada)': 'US/Central',
+  'Pacific Time (US & Canada)': 'US/Pacific',
+  'Mountain Time (US & Canada)': 'US/Mountain'
+}
+
+sync().catch(ex => console.log(ex))
+// deleteEmptyConsGroups().catch(ex => console.log(ex))
+
+/*
+ * ––––––––
+ * One time use
+ * --------
+ */
 
 async function reimportNBPeople() {
   await refreshConsGroups()
@@ -423,25 +548,11 @@ async function reimportNBPeople() {
     newPerson.mobile = person.mobile_number
     newPerson.primary_address = address
     console.log(person.created_at)
-    newPerson.created_at = moment(person.created_at, 'MM/DD/YYYY hh:mm a').format('YYYY-MM-DDTHH:mm:ssZ')
+    newPerson.created_at = moment(
+      person.created_at,
+      'MM/DD/YYYY hh:mm a'
+    ).format('YYYY-MM-DDTHH:mm:ssZ')
     await nbPersonToBSDCons(newPerson)
   }
   console.log('done!')
 }
-
-async function sync() {
-  log.info('Starting sync...')
-  await refreshConsGroups()
-  await syncPeople()
-  await syncEvents()
-  log.info('Done syncing!')
-}
-
-const timezoneMap = {
-  'Eastern Time (US & Canada)' : 'US/Eastern',
-  'Central Time (US & Canada)' : 'US/Central',
-  'Pacific Time (US & Canada)' : 'US/Pacific',
-  'Mountain Time (US & Canada)' : 'US/Mountain'
-}
-
-sync().catch((ex) => console.log(ex))
