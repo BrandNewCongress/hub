@@ -216,7 +216,7 @@ async function syncActBlueToRedis() {
       timestamp: timestamp,
       value: Math.round(parseFloat(totalAmountRaised) * 100)
     }
-    log.info(`Syncing ${campaign}...`)
+    log.info(`Syncing ${campaign.name} to redis...`)
     await redisClient.zaddAsync(contributionsMetric, timestamp, JSON.stringify(contributions))
     await redisClient.zaddAsync(amountRaisedMetric, timestamp, JSON.stringify(amountRaised))
   }
