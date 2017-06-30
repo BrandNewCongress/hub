@@ -26,6 +26,7 @@ function auth(username, password) {
   }
 }
 
+
 const queue = kue.createQueue({
   redis: process.env.REDIS_URL
 })
@@ -166,7 +167,12 @@ app.post('/nominations', apiLog, async (req, res) => {
       Email: body.nomineeEmail,
       Phone: body.nomineePhone,
       City: body.nomineeCity,
-      'Nominator Personal': body.nominatorPersonal ? 'Yes' : 'No',
+      'Nominator Personal': body.nominatorPersonal !== undefined
+        ? body.nominatorPersonal ? 'Yes' : 'No'
+        : 'Unknown',
+      'Already Running': body.alreadyRunning !== undefined
+        ? body.alreadyRunning ? 'Yes' : 'No'
+        : 'Unknown',
       'State Abbreviation': body.nomineeState,
       'Congressional District Code': body.nomineeDistrict,
       Facebook: body.nomineeFacebook,
