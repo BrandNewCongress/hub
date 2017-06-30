@@ -453,6 +453,7 @@ class BNCAirtable {
         emails: cleanedNomination.submitterEmails
       })
     } catch (err) {
+      console.error(err)
       console.log('No nominator information on form')
     }
 

@@ -1,4 +1,3 @@
-
 const axios = require('axios')
 const bodyParser = require('body-parser')
 const express = require('express')
@@ -11,10 +10,9 @@ const kue = require('kue')
 const basicAuth = require('basic-auth')
 const apps = require('./apps')
 const BSD = require('./bsd')
-// const apiLog = require('./api-log')
+const apiLog = require('./api-log')
 const asana = require('./asana')
 const sourceMap = require('./source-map')
-console.log('hello')
 
 function auth(username, password) {
   return (req, res, next) => {
