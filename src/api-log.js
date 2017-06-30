@@ -14,7 +14,7 @@ module.exports = (req, res, next) => {
   if (!req.query.dontLog) {
     db.get('API Logs').insert(data)
     .then(ok => {
-      console.log(`Successfully logged ${req.path}`)
+      log.info(`Successfully logged ${req.path}`)
     })
     .catch(err => {
       console.log(`Found error ${err}`)
