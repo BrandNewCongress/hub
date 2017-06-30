@@ -1,3 +1,4 @@
+
 const axios = require('axios')
 const bodyParser = require('body-parser')
 const express = require('express')
@@ -10,9 +11,10 @@ const kue = require('kue')
 const basicAuth = require('basic-auth')
 const apps = require('./apps')
 const BSD = require('./bsd')
-const apiLog = require('./api-log')
+// const apiLog = require('./api-log')
 const asana = require('./asana')
 const sourceMap = require('./source-map')
+console.log('hello')
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -25,6 +27,7 @@ function auth(username, password) {
     return next()
   }
 }
+
 
 const queue = kue.createQueue({
   redis: process.env.REDIS_URL
@@ -166,7 +169,12 @@ app.post('/nominations', apiLog, async (req, res) => {
       Email: body.nomineeEmail,
       Phone: body.nomineePhone,
       City: body.nomineeCity,
-      'Nominator Personal': body.nominatorPersonal ? 'Yes' : 'No',
+      'Nominator Personal': body.nominatorPersonal !== undefined
+        ? body.nominatorPersonal ? 'Yes' : 'No'
+        : 'Unknown',
+      'Already Running': body.alreadyRunning !== undefined
+        ? body.alreadyRunning ? 'Yes' : 'No'
+        : 'Unknown',
       'State Abbreviation': body.nomineeState,
       'Congressional District Code': body.nomineeDistrict,
       Facebook: body.nomineeFacebook,
