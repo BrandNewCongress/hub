@@ -1,6 +1,5 @@
-// const evaluator = require('./evaluator')
-// const metrics = require('./metrics')
-// const events = require('./events')
+const evaluator = require('./evaluator')
+const metrics = require('./metrics')
+const events = require('./events')
 
-// module.exports = [ evaluator, metrics, events ]
-module.exports = []
+module.exports = [ evaluator, metrics, events ]
