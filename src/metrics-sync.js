@@ -16,98 +16,8 @@ redisClient.on("error", function (err) {
   log.error("Error " + err)
 })
 
-const campaignMetricsSchema = {
-  timestamp: {
-    type: 'datetime',
-    name: 'Timestamp',
-    optional: false
-  },
-  campaign: {
-    type: 'string',
-    name: 'Campaign',
-    optional: false
-  },
-  amount_raised: {
-    type: 'money',
-    name: 'Amount Raised',
-    optional: true,
-    currency_code: 'USD'
-  },
-  contributions: {
-    type: 'number',
-    name: 'Contributions',
-    optional: true
-  }
-}
-  /*
-  expenses: {
-    type: 'money',
-    name: 'Expenses',
-    optional: true
-  },
-  donors: {
-    type: 'number',
-    name: 'Donors',
-    optional: true
-  },
-  supporters: {
-    type: 'number',
-    name: 'Supporters',
-    optional: true
-  },
-  emails: {
-    type: 'number',
-    name: 'Supporters with Emails',
-    optional: true
-  },
-  phones: {
-    type: 'number',
-    name: 'Supporters with Phones',
-    optional: true
-  },
-  campaign_supporters: {
-    type: 'number',
-    name: 'Supporters (Campaign List)',
-    optional: true
-  }
-}]*/
-
-const campaigns = [{
-  name: 'TX-14: Adrienne Bell',
-  actblueEntity: 50725
-}, {
-  name: 'NY-14: Alexandria Ocasio-Cortez',
-  actblueEntity: 50295
-}, {
-  name: 'IL-07: Anthony Clark',
-  actblueEntity: 50745
-}, {
-  name: 'FL-07: Chardo Richardson',
-  actblueEntity: 50546
-}, {
-  name: 'MO-01: Cori Bush',
-  actblueEntity: 49905
-}, {
-  name: 'TX-29: Hector Morales',
-  actblueEntity: 49941
-}, {
-  name: 'TX-22: Letitia Plummer',
-  actblueEntity: 50744
-}, {
-  name: 'PA-07: Paul Perry',
-  actblueEntity: 51003
-}, {
-  name: 'WV-SN-1: Paula Jean Swearengin',
-  actblueEntity: 50279
-}, {
-  name: 'TX-10: Ryan Stone',
-  actblueEntity: 49943
-}, {
-  name: 'WA-09: Sarah Smith',
-  actblueEntity: 50285
-}]
-
 async function createGeckoDataset(id, fields) {
+  
   let dataset = null
   try {
     dataset = await geckoboard.findOrCreateAsync({
@@ -115,6 +25,7 @@ async function createGeckoDataset(id, fields) {
       fields: fields
     })
   } catch (ex) {
+    log.info(ex)
     await geckoboard.deleteAsync(id)
     dataset = await geckoboard.findOrCreateAsync({
       id: id,
@@ -125,71 +36,182 @@ async function createGeckoDataset(id, fields) {
 }
 
 async function syncRedisToGeckoboard() {
-  const campaignKeys = await redisClient.keysAsync('metrics:campaigns:*')
-  campaignKeys.forEach((key) => {
-    const parts = key.split(':')    
-    const field = parts[parts.length-1]
-    if (!campaignMetricsSchema[field]) {
-      log.error(`New campaign metric added: ${field}. Specify the type in metrics-sync.js. Defaulting to number`)
-    }
-  })
-
-  let dailiesDataset = await createGeckoDataset('campaigns.daily', campaignMetricsSchema)
-  const dailyMetrics = {}
-  for (let index = 0; index < campaignKeys.length; index++) {
-    const key = campaignKeys[index]
-    const parts = key.split(':')
-    const field = parts[parts.length-1]
-    const campaign = parts[parts.length-2]
-    let lastVal = null
-    const values = await redisClient.zrangeAsync([key, 0, -1, 'WITHSCORES'])
-    for (let valueIndex = 0; valueIndex < values.length; valueIndex += 2) {
-      const value = JSON.parse(values[valueIndex]).value
-      const timestamp = values[valueIndex + 1]
-      if (!dailyMetrics[timestamp]) {
-        dailyMetrics[timestamp] = {}
+  const geckoTableMapping = {
+    'campaigns' : {
+      redisGlob: 'metrics:campaign:*',
+      fieldMapping: {
+        campaign: {
+          type: 'string',
+          name: 'Campaign',
+          optional: false
+        },
+        amount_raised: {
+          type: 'money',
+          name: 'Amount Raised',
+          optional: true,
+          currency_code: 'USD'
+        },
+        expenses: {
+          type: 'money',
+          name: 'Expenses',
+          currency_code: 'USD',
+          optional: true
+        },
+        donors: {
+          type: 'number',
+          name: 'Donors',
+          optional: true
+        },
+        supporters_total: {
+          type: 'number',
+          name: 'Supporters (Emails + Phones, in-district)',
+          optional: true
+        },
+        signups_campaign: {
+          type: 'number',
+          name: 'Signups (Campaign-only)',
+          optional: true
+        },
+        emails: {
+          type: 'number',
+          name: 'Emails (In-district)',
+          optional: true
+        },
+        phones: {
+          type: 'number',
+          name: 'Phones (In-district)',
+          optional: true
+        },
+        press_hits: {
+          type: 'number',
+          name: 'Press Hits',
+          optional: true
+        }
       }
-      if (!dailyMetrics[timestamp][campaign]) {
-        dailyMetrics[timestamp][campaign] = {}
-      }
-
-      let dailyVal = 0
-      if (lastVal === null) {
-        dailyVal = value
-      } else {
-        dailyVal = value - lastVal
-      }
-      lastVal = value
-      dailyMetrics[timestamp][campaign][field] = dailyVal
     }
   }
-  const geckoDailies = []
 
-  Object.keys(dailyMetrics).forEach((timestamp) => {
-    Object.keys(dailyMetrics[timestamp]).forEach((campaign) => {
-      geckoDailies.push({
-        timestamp: moment.unix(timestamp).toISOString(),
-        campaign: campaign,
-        amount_raised: dailyMetrics[timestamp][campaign].amount_raised,
-        contributions: dailyMetrics[timestamp][campaign].contributions
+  const geckoTables = Object.keys(geckoTableMapping)
+  for (let index = 0; index < geckoTables.length; index++) {
+    const table = geckoTables[index]
+    const mapping = geckoTableMapping[table]
+    const geckoFields = Object.assign({
+      timestamp: {
+        type: 'datetime',
+        name: 'Timestamp',
+        optional: false
+      }
+    }, mapping.fieldMapping)
+    let dataset = await createGeckoDataset(table, geckoFields)
+    const keys = await redisClient.keysAsync(mapping.redisGlob)
+    const data = []
+    for (let keyIndex = 0; keyIndex < keys.length; keyIndex++) {
+      const key = keys[keyIndex]
+      const parts = key.split(':')
+      const fields = {}
+      parts.forEach((part, index) => {
+        if (index !== 0 && index !== parts.length - 1 && index % 2 === 1) {
+          fields[part] = parts[index + 1]
+        }
+      })      
+      const metric = parts[parts.length - 1]
+      const values = await redisClient.zrangeAsync([key, 0, -1, 'WITHSCORES'])
+      let lastVal = null
+      for (let valueIndex = 0; valueIndex < values.length; valueIndex += 2) {
+        const obj = JSON.parse(values[valueIndex])
+        const value = obj.value
+        const timestamp = moment.unix(obj.timestamp).toISOString()
+        const allFields = Object.assign({}, fields)
+        allFields.timestamp = timestamp
+        let dailyVal = 0
+        if (lastVal === null) {
+          dailyVal = value
+        } else {
+          dailyVal = value - lastVal
+        }
+        lastVal = value
+        let foundDatum = null
+        data.forEach((datum) => {
+          let found = true
+          Object.keys(allFields).forEach((field) => {
+            if (datum[field] !== allFields[field]) {
+              found = false
+            }
+          })
+          if (found === true) {
+            foundDatum = datum
+          }
+        })
+        if (foundDatum) {
+          foundDatum[metric] = dailyVal
+        } else {
+          const newVal = Object.assign({}, allFields)
+          newVal[metric] = dailyVal          
+          data.push(newVal)
+        }
+      }
+    }
+
+    const finalData = []
+    data.forEach((datum) => {
+      const finalDatum = {}
+      Object.keys(datum).forEach((field) => {
+        if (geckoFields[field]) {
+          finalDatum[field] = datum[field]
+        }
       })
+      finalData.push(finalDatum)
     })
-  })
 
-  dailiesDataset = bluebird.promisifyAll(dailiesDataset)
+    dataset = bluebird.promisifyAll(dataset)
 
-  await dailiesDataset.putAsync(geckoDailies.slice(0, 500))
+    await dataset.putAsync(finalData.slice(0, 500))
 
-  for (let index = 501; index < geckoDailies.length; index += 500) {
-    const start = index
-    const end = index + 500
-    await dailiesDataset.postAsync(geckoDailies.slice(start, end), { delete_by: 'timestamp' })
+    for (let index = 501; index < finalData.length; index += 500) {
+      const start = index
+      const end = index + 500
+      await dataset.postAsync(finalData.slice(start, end), { delete_by: 'timestamp' })
+    }
   }
 
   log.info('Finished syncing to Geckoboard.')
 }
 
 async function syncActBlueToRedis() {
+  const campaigns = [{
+    name: 'TX-14: Adrienne Bell',
+    actblueEntity: 50725
+  }, {
+    name: 'NY-14: Alexandria Ocasio-Cortez',
+    actblueEntity: 50295
+  }, {
+    name: 'IL-07: Anthony Clark',
+    actblueEntity: 50745
+  }, {
+    name: 'FL-07: Chardo Richardson',
+    actblueEntity: 50546
+  }, {
+    name: 'MO-01: Cori Bush',
+    actblueEntity: 49905
+  }, {
+    name: 'TX-29: Hector Morales',
+    actblueEntity: 49941
+  }, {
+    name: 'TX-22: Letitia Plummer',
+    actblueEntity: 50744
+  }, {
+    name: 'PA-07: Paul Perry',
+    actblueEntity: 51003
+  }, {
+    name: 'WV-SN-1: Paula Jean Swearengin',
+    actblueEntity: 50279
+  }, {
+    name: 'TX-10: Ryan Stone',
+    actblueEntity: 49943
+  }, {
+    name: 'WA-09: Sarah Smith',
+    actblueEntity: 50285
+  }]
   for (let index = 0; index < campaigns.length; index++) {
     const campaign = campaigns[index]
     const timestamp = moment().unix()
@@ -205,8 +227,8 @@ async function syncActBlueToRedis() {
     const parsed = await parseStringPromise(response.data)
     const totalContributions = parsed.entity.scoreboards[0].scoreboard[0].fact[0].count[0]
     const totalAmountRaised = parsed.entity.scoreboards[0].scoreboard[0].fact[0].total[0]
-    const contributionsMetric = `metrics:campaigns:${campaignToKey(campaign.name)}:contributions`
-    const amountRaisedMetric = `metrics:campaigns:${campaignToKey(campaign.name)}:amount_raised`
+    const contributionsMetric = `metrics:campaign:${campaignToKey(campaign.name)}:contributions`
+    const amountRaisedMetric = `metrics:campaign:${campaignToKey(campaign.name)}:amount_raised`
     const contributions = {
       timestamp: timestamp,
       value: parseInt(totalContributions, 10)
@@ -222,12 +244,48 @@ async function syncActBlueToRedis() {
   }
 }
 
-async function syncRobbDonationsToRedis() {
+async function syncAsanaToRedis() {
+
+}
+
+async function syncExpensesToRedis() {
+
+}
+
+async function syncTeamMetricsToRedis() {
 
 }
 
 async function syncPACDonationsToRedis() {
 
+}
+
+async function syncRobbDonationsToRedis() {
+  const response = await axios.get('https://sheetsu.com/apis/v1.0/7ac56516d309')
+  const contributions = []
+  const donors = []
+  const contributionsMetric = 'metrics:campaign:ar-03-robb-ryerse:amount_raised'
+  const donorsMetric = 'metrics:campaign:ar-03-robb-ryerse:donors'
+  await redisClient.zremrangebyrankAsync(contributionsMetric, 0, -1)
+  await redisClient.zremrangebyrankAsync(donorsMetric, 0, -1)
+  for (let index = 0; index < response.data.length; index++) {
+    const datum = response.data[index]
+    const timestamp = moment(datum.Date, 'MM/DD/YYYY').unix()
+    if (datum.Amount !== '') {
+      const contribution = {
+        timestamp: timestamp,
+        value: Math.round(parseInt(datum.Amount.replace(/\D/g,''), 10) * 100)
+      }
+      await redisClient.zaddAsync(contributionsMetric, timestamp, JSON.stringify(contribution))
+    }
+    if (datum.Donors !== '') {
+      const donor = {
+        timestamp: timestamp,
+        value: parseInt(datum.Donors.replace(/\D/g,''), 10)
+      }
+      await redisClient.zaddAsync(donorsMetric, timestamp, JSON.stringify(donor))
+    }
+  }
 }
 
 function campaignToKey(campaignName) {
@@ -250,7 +308,7 @@ async function syncHistoricalDataToRedis() {
   'wv-sn-1-paula-jean-swearengin' ]
   for (let index = 0; index < files.length; index++)   {
     const file = files[index]
-    console.log(`Processing ${file}...`)
+    log.info(`Processing ${file}...`)
     let totalAmountRaised = 0
     let totalContributions = 0
     let currentDate = null
@@ -261,8 +319,8 @@ async function syncHistoricalDataToRedis() {
       if (currentDate !== null && newDate.date() !== currentDate.date()) {
         console.log('Hitting redis...', currentDate)
         const timestamp = currentDate.unix()
-        const contributionsMetric = `metrics:campaigns:${campaignToKey(file)}:contributions`
-        const amountRaisedMetric = `metrics:campaigns:${campaignToKey(file)}:amount_raised`
+        const contributionsMetric = `metrics:campaign:${campaignToKey(file)}:contributions`
+        const amountRaisedMetric = `metrics:campaign:${campaignToKey(file)}:amount_raised`
         const contributions = {
           timestamp: timestamp,
           value: parseInt(totalContributions, 10)
@@ -285,8 +343,12 @@ async function syncHistoricalDataToRedis() {
 
 async function sync() {
   log.info('Generating metrics...')
+  await syncRobbDonationsToRedis()
   await syncActBlueToRedis()
+//  await syncExpensesToRedis()
   await syncRedisToGeckoboard()
+  await renameKeys()
+
   log.info('Done syncing.')
 }
 
