@@ -432,10 +432,10 @@ async function syncHistoricalDataToRedis() {
 
 async function sync() {
   log.info('Generating metrics...')
-//  await syncRobbDonationsToRedis()
-//  await syncActBlueToRedis()
-//  await syncExpensesToRedis()
-//  await syncSupportersToRedis()
+  await syncRobbDonationsToRedis()
+  await syncActBlueToRedis()
+  await syncExpensesToRedis()
+  await syncSupportersToRedis()
   await syncRedisToGeckoboard()
   log.info('Done syncing.')
 }
