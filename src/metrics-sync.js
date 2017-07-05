@@ -83,6 +83,7 @@ async function syncRedisToGeckoboard() {
   const geckoTables = Object.keys(geckoTableMapping)
   for (let index = 0; index < geckoTables.length; index++) {
     const table = geckoTables[index]
+    const totalsTable = `${table}.totals`
     const mapping = geckoTableMapping[table]
     const geckoFields = Object.assign({
       timestamp: {
@@ -91,7 +92,7 @@ async function syncRedisToGeckoboard() {
         optional: false
       }
     }, mapping.fieldMapping)
-    let dataset = await createGeckoDataset(table, geckoFields)
+
     const keys = await client.keysAsync(mapping.redisGlob)
     const data = []
     for (let keyIndex = 0; keyIndex < keys.length; keyIndex++) {
@@ -140,35 +141,56 @@ async function syncRedisToGeckoboard() {
           }
         })
         if (foundDatum) {
-          foundDatum[metric] = dailyVal
+          foundDatum[metric] = {
+            daily: dailyVal,
+            total: lastVal
+          }
         } else {
           const newVal = Object.assign({}, allFields)
-          newVal[metric] = dailyVal          
+          newVal[metric] = {
+            daily: dailyVal,
+            total: lastVal
+          }
           data.push(newVal)
         }
       }
     }
 
-    const finalData = []
+    const finalDailyData = []
+    const finalTotalsData = []
     data.forEach((datum) => {
-      const finalDatum = {}
+      const finalDailyDatum = {}
+      const finalTotalDatum = {}
       Object.keys(datum).forEach((field) => {
         if (geckoFields[field]) {
-          finalDatum[field] = datum[field]
+          if (datum[field].hasOwnProperty('daily')) {
+            finalDailyDatum[field] = datum[field].daily
+          } else if (datum[field].hasOwnProperty('total')) {
+            finalTotalDatum[field] = datum[field].total
+          } else {
+            finalDailyDatum[field] = datum[field]
+            finalTotalDatum[field] = datum[field]
+          }
         }
       })
-      console.log(finalDatum)
-      finalData.push(finalDatum)
+      finalDailyData.push(finalDailyDatum)
+      finalTotalsData.push(finalTotalDatum)
     })
 
+    let dataset = await createGeckoDataset(table, geckoFields)
+    let totalsDataset = await createGeckoDataset(totalsTable, geckoFields)
+
     dataset = bluebird.promisifyAll(dataset)
+    totalsDataset = bluebird.promisifyAll(totalsDataset)
 
-    await dataset.putAsync(finalData.slice(0, 500))
+    await dataset.putAsync(finalDailyData.slice(0, 500))
+    await totalsDataset.putAsync(finalDailyData.slice(0, 500))
 
-    for (let index = 501; index < finalData.length; index += 500) {
+    for (let index = 501; index < finalDailyData.length; index += 500) {
       const start = index
       const end = index + 500
-      await dataset.postAsync(finalData.slice(start, end), { delete_by: 'timestamp' })
+      await dataset.postAsync(finalDailyData.slice(start, end), { delete_by: 'timestamp' })
+      await totalsDataset.postAsync(finalTotalsData.slice(start, end), { delete_by: 'timestamp' })
     }
   }
 
@@ -410,10 +432,10 @@ async function syncHistoricalDataToRedis() {
 
 async function sync() {
   log.info('Generating metrics...')
-  await syncRobbDonationsToRedis()
-  await syncActBlueToRedis()
-  await syncExpensesToRedis()
-  await syncSupportersToRedis()
+//  await syncRobbDonationsToRedis()
+//  await syncActBlueToRedis()
+//  await syncExpensesToRedis()
+//  await syncSupportersToRedis()
   await syncRedisToGeckoboard()
   log.info('Done syncing.')
 }
