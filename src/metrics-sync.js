@@ -2,19 +2,13 @@ var axios = require('axios')
 var log = require('./log')
 const { parseString } = require('xml2js')
 const bluebird = require('bluebird')
-const redis = require('redis')
+const { client, logTSPoint } = require('./redis')
 const parseStringPromise = bluebird.promisify(parseString)
-bluebird.promisifyAll(redis.RedisClient.prototype)
-bluebird.promisifyAll(redis.Multi.prototype)
-const redisClient = redis.createClient(process.env.REDIS_URL)
 const moment = require('moment')
 const gecko = require('geckoboard')(process.env.GECKOBOARD_SECRET)
 const geckoboard = bluebird.promisifyAll(gecko.datasets)
 const Baby = require('babyparse')
-
-redisClient.on("error", function (err) {
-  log.error("Error " + err)
-})
+const BSD = require('./bsd')
 
 async function createGeckoDataset(id, fields) {
   
@@ -62,24 +56,19 @@ async function syncRedisToGeckoboard() {
           name: 'Donors',
           optional: true
         },
-        supporters_total: {
+        supporters: {
           type: 'number',
-          name: 'Supporters (Emails + Phones, in-district)',
+          name: 'National Supporters (Campaign-only)',
           optional: true
         },
-        signups_campaign: {
+        district_supporters: {
           type: 'number',
-          name: 'Signups (Campaign-only)',
+          name: 'In-District Supporters',
           optional: true
         },
-        emails: {
+        district_phones: {
           type: 'number',
-          name: 'Emails (In-district)',
-          optional: true
-        },
-        phones: {
-          type: 'number',
-          name: 'Phones (In-district)',
+          name: 'In-District Phones',
           optional: true
         },
         press_hits: {
@@ -103,7 +92,7 @@ async function syncRedisToGeckoboard() {
       }
     }, mapping.fieldMapping)
     let dataset = await createGeckoDataset(table, geckoFields)
-    const keys = await redisClient.keysAsync(mapping.redisGlob)
+    const keys = await client.keysAsync(mapping.redisGlob)
     const data = []
     for (let keyIndex = 0; keyIndex < keys.length; keyIndex++) {
       const key = keys[keyIndex]
@@ -115,12 +104,20 @@ async function syncRedisToGeckoboard() {
         }
       })      
       const metric = parts[parts.length - 1]
-      const values = await redisClient.zrangeAsync([key, 0, -1, 'WITHSCORES'])
+      const values = await client.zrangeAsync([key, 0, -1, 'WITHSCORES'])
       let lastVal = null
+      let lastDay = null
       for (let valueIndex = 0; valueIndex < values.length; valueIndex += 2) {
         const obj = JSON.parse(values[valueIndex])
         const value = obj.value
-        const timestamp = moment.unix(obj.timestamp).toISOString()
+
+        // We send data with day granularity
+        const timestamp = moment.unix(obj.timestamp).startOf('day').toISOString()
+        if (timestamp === lastDay) {
+          continue
+        } else {
+          lastDay = timestamp
+        }
         const allFields = Object.assign({}, fields)
         allFields.timestamp = timestamp
         let dailyVal = 0
@@ -160,6 +157,7 @@ async function syncRedisToGeckoboard() {
           finalDatum[field] = datum[field]
         }
       })
+      console.log(finalDatum)
       finalData.push(finalDatum)
     })
 
@@ -178,6 +176,7 @@ async function syncRedisToGeckoboard() {
 }
 
 async function syncActBlueToRedis() {
+  const timestamp = moment().unix()
   const campaigns = [{
     name: 'TX-14: Adrienne Bell',
     actblueEntity: 50725
@@ -214,7 +213,6 @@ async function syncActBlueToRedis() {
   }]
   for (let index = 0; index < campaigns.length; index++) {
     const campaign = campaigns[index]
-    const timestamp = moment().unix()
     const response = await axios.get(`https://secure.actblue.com/api/2009-08/entities/${campaign.actblueEntity}`, {
       headers: {
         Accept: 'application/xml'
@@ -229,26 +227,16 @@ async function syncActBlueToRedis() {
     const totalAmountRaised = parsed.entity.scoreboards[0].scoreboard[0].fact[0].total[0]
     const contributionsMetric = `metrics:campaign:${campaignToKey(campaign.name)}:contributions`
     const amountRaisedMetric = `metrics:campaign:${campaignToKey(campaign.name)}:amount_raised`
-    const contributions = {
-      timestamp: timestamp,
-      value: parseInt(totalContributions, 10)
-    }
-
-    const amountRaised = {
-      timestamp: timestamp,
-      value: Math.round(parseFloat(totalAmountRaised) * 100)
-    }
-    log.info(`Syncing ${campaign.name} to redis...`)
-    await redisClient.zaddAsync(contributionsMetric, timestamp, JSON.stringify(contributions))
-    await redisClient.zaddAsync(amountRaisedMetric, timestamp, JSON.stringify(amountRaised))
+    await logTSPoint(amountRaisedMetric, timestamp, Math.round(parseFloat(totalAmountRaised) * 100))
+    await logTSPoint(contributionsMetric, timestamp, parseInt(totalContributions, 10))
   }
 }
 
-async function syncAsanaToRedis() {
+async function syncExpensesToRedis() {
 
 }
 
-async function syncExpensesToRedis() {
+async function syncPressHitsToRedis() {
 
 }
 
@@ -260,30 +248,120 @@ async function syncPACDonationsToRedis() {
 
 }
 
+async function syncSupportersToRedis() {
+  const timestamp = moment().unix()
+  const campaigns = [{
+    name: 'TX-14: Adrienne Bell',
+    supporters: 277,
+    district_phones: 359,
+    district_supporters: 358
+  }, {
+    name: 'NY-14: Alexandria Ocasio-Cortez',
+    supporters: 275,
+    district_phones: 317,
+    district_supporters: 316
+  }, {
+    name: 'IL-07: Anthony Clark',
+    supporters: 274,
+    district_phones: 319,
+    district_supporters: 318
+  }, {
+    name: 'FL-07: Chardo Richardson',
+    supporters: 286,
+    district_phones: 323,
+    district_supporters: 322
+  }, {
+    name: 'MO-01: Cori Bush',
+    supporters: 282,
+    district_phones: 327,
+    district_supporters: 326
+  }, {
+    name: 'TX-29: Hector Morales',
+    supporters: 279,
+    district_phones: 330,
+    district_supporters: 331
+  }, {
+    name: 'TX-22: Letitia Plummer',
+    supporters: 278,
+    district_phones: 335,
+    district_supporters: 334
+  }, {
+    name: 'PA-07: Paul Perry',
+    supporters: 289,
+    district_phones: 339,
+    district_supporters: 338
+  }, {
+    name: 'WV-SN-1: Paula Jean Swearengin',
+    supporters: 284,
+    district_phones: 343,
+    district_supporters: 342
+  }, {
+    name: 'TX-10: Ryan Stone',
+    supporters: 281,
+    district_phones: 351,
+    district_supporters: 350
+  }, {
+    name: 'WA-09: Sarah Smith',
+    supporters: 273,
+    district_phones: 355,
+    district_supporters: 354
+  }, {
+    name: 'AR-03: Robb Ryerse',
+    supporters: 272,
+    district_phones: 347,
+    district_supporters: 346
+  }, {
+    name: 'Justice Democrats',
+    supporters: 310
+  }, {
+    name: 'Brand New Congress',
+    supporters: 309
+  }, {
+    name: 'Total',
+    supporters: 408
+  }]
+  const bsd = new BSD(
+    process.env.BSD_API_URL,
+    process.env.BSD_API_ID,
+    process.env.BSD_API_SECRET
+  )
+  for (let index = 0; index < campaigns.length; index++) {
+    const campaign = campaigns[index]
+    const campaignName = campaignToKey(campaign.name)
+    const supportersMetric = `metrics:campaign:${campaignName}:supporters`
+    const districtSupportersMetric = `metrics:campaign:${campaignName}:district_supporters`
+    const districtPhonesMetric = `metrics:campaign:${campaignName}:district_phones`
+    if (campaign.supporters) {
+      const consGroup = await bsd.getConstituentGroup(campaign.supporters)
+      await logTSPoint(supportersMetric, timestamp, parseInt(consGroup.members, 10) || 0)
+    }
+    if (campaign.district_phones) {
+      const consGroup = await bsd.getConstituentGroup(campaign.district_phones)
+      await logTSPoint(districtPhonesMetric, timestamp, parseInt(consGroup.members, 10) || 0)
+    }
+    if (campaign.district_supporters) {
+      const consGroup = await bsd.getConstituentGroup(campaign.district_supporters)
+      await logTSPoint(districtSupportersMetric, timestamp, parseInt(consGroup.members, 10) || 0)
+    }
+  }
+}
+
 async function syncRobbDonationsToRedis() {
   const response = await axios.get('https://sheetsu.com/apis/v1.0/7ac56516d309')
   const contributions = []
   const donors = []
   const contributionsMetric = 'metrics:campaign:ar-03-robb-ryerse:amount_raised'
   const donorsMetric = 'metrics:campaign:ar-03-robb-ryerse:donors'
-  await redisClient.zremrangebyrankAsync(contributionsMetric, 0, -1)
-  await redisClient.zremrangebyrankAsync(donorsMetric, 0, -1)
+  await client.zremrangebyrankAsync(contributionsMetric, 0, -1)
+  await client.zremrangebyrankAsync(donorsMetric, 0, -1)
   for (let index = 0; index < response.data.length; index++) {
     const datum = response.data[index]
     const timestamp = moment(datum.Date, 'MM/DD/YYYY').unix()
     if (datum.Amount !== '') {
-      const contribution = {
-        timestamp: timestamp,
-        value: Math.round(parseInt(datum.Amount.replace(/\D/g,''), 10) * 100)
-      }
-      await redisClient.zaddAsync(contributionsMetric, timestamp, JSON.stringify(contribution))
+      await logTSPoint(contributionsMetric, timestamp, Math.round(parseInt(datum.Amount.replace(/\D/g,''), 10) * 100))
     }
     if (datum.Donors !== '') {
-      const donor = {
-        timestamp: timestamp,
-        value: parseInt(datum.Donors.replace(/\D/g,''), 10)
-      }
-      await redisClient.zaddAsync(donorsMetric, timestamp, JSON.stringify(donor))
+      await logTSPoint(donorsMetric, timestamp, parseInt(datum.Donors.replace(/\D/g,''), 10))
     }
   }
 }
@@ -317,21 +395,10 @@ async function syncHistoricalDataToRedis() {
     for (let inner = 0; inner < csv.length; inner++) {
       let newDate = moment(csv[inner]['Date'])
       if (currentDate !== null && newDate.date() !== currentDate.date()) {
-        console.log('Hitting redis...', currentDate)
         const timestamp = currentDate.unix()
         const contributionsMetric = `metrics:campaign:${campaignToKey(file)}:contributions`
         const amountRaisedMetric = `metrics:campaign:${campaignToKey(file)}:amount_raised`
-        const contributions = {
-          timestamp: timestamp,
-          value: parseInt(totalContributions, 10)
-        }
-
-        const amountRaised = {
-          timestamp: timestamp,
-          value: Math.round(parseFloat(totalAmountRaised) * 100)
-        }
-        await redisClient.zaddAsync(contributionsMetric, timestamp, JSON.stringify(contributions))
-        await redisClient.zaddAsync(amountRaisedMetric, timestamp, JSON.stringify(amountRaised))
+        await logTSPoint(amountRaisedMetric, timestamp, Math.round(parseFloat(totalAmountRaised) * 100))
         currentDate = newDate        
       }
       currentDate = newDate
@@ -345,10 +412,9 @@ async function sync() {
   log.info('Generating metrics...')
   await syncRobbDonationsToRedis()
   await syncActBlueToRedis()
-//  await syncExpensesToRedis()
+  await syncExpensesToRedis()
+  await syncSupportersToRedis()
   await syncRedisToGeckoboard()
-  await renameKeys()
-
   log.info('Done syncing.')
 }
 
