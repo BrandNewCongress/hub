@@ -11,7 +11,7 @@ redisClient.on("error", function (err) {
 })
 
 function metricStringFromHash(metadata, metric) {
-  let key = 'metric'
+  let key = 'metrics'
   const metadataKeys = Object.keys(metadata).sort()
   metadataKeys.forEach((datum) => {
     key = `${key}:${datum}:${metadata[datum]}`
