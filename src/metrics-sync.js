@@ -109,12 +109,14 @@ const campaigns = [{
   name: 'Brand New Congress',
   supporters: 309,
   donors: 148,
-  airtableId: 'recv7HBQqVWCdP8iv'
+  airtableId: 'recv7HBQqVWCdP8iv',
+  actblueEntity: 43869
 }, {
   name: 'Justice Democrats',
   supporters: 310,
   donors: 171,
-  airtableId: 'rec1ZXkjNyFITbqiy'
+  airtableId: 'rec1ZXkjNyFITbqiy',
+  actblueEntity: 47613
 }, {
   name: 'Total',
   supporters: 408,
@@ -329,21 +331,21 @@ async function syncActBlueToRedis() {
       const parsed = await parseStringPromise(response.data)
       const totalContributions = parsed.entity.scoreboards[0].scoreboard[0].fact[0].count[0]
       const totalAmountRaised = parsed.entity.scoreboards[0].scoreboard[0].fact[0].total[0]
-      await logMetric({ campaign: campaignToKey(campaign.name) }, 'amount_raised', timestamp, Math.round(parseFloat(totalAmountRaised) * 100))
-      await logMetric({ campaign: campaignToKey(campaign.name) }, 'contributions', timestamp, parseInt(totalContributions, 10))
+      await logMetric({ campaign: convertToRedisKey(campaign.name) }, 'amount_raised', timestamp, Math.round(parseFloat(totalAmountRaised) * 100))
+      await logMetric({ campaign: convertToRedisKey(campaign.name) }, 'contributions', timestamp, parseInt(totalContributions, 10))
     }
   }
 }
 
 async function syncPressHitsToRedis() {
   const BNCAirtable = airtable.BNCAirtable
-  const teamsBase = new BNCAirtable('app6OLwbE5uJYDyRV')
-  const pressHits = await teamsBase.findAll('Press Hits', {
+  const campaignsBase = new BNCAirtable('app6OLwbE5uJYDyRV')
+  const pressHits = await campaignsBase.findAll('Press Hits', {
     fields: ['Campaigns', 'Date Published']
   })
   for (let index = 0; index < campaigns.length; index++) {
     const campaign = campaigns[index]
-    await flushMetric({ campaign: campaignToKey(campaign.name) }, 'press_hits')
+    await flushMetric({ campaign: convertToRedisKey(campaign.name) }, 'press_hits')
   }
 
   const pressHitsByCampaign = {}
@@ -355,7 +357,7 @@ async function syncPressHitsToRedis() {
       atCampaigns.forEach((atCampaign) => {
         campaigns.forEach((campaign) => {
           if (campaign.airtableId === atCampaign) {
-            const campaignName = campaignToKey(campaign.name) 
+            const campaignName = convertToRedisKey(campaign.name) 
             if (!pressHitsByCampaign[campaignName]) {
               pressHitsByCampaign[campaignName] = []
             }
@@ -389,14 +391,12 @@ async function calculateTotalDonations() {
   for (let index = 0; index < campaigns.length; index++) {
     const campaign = campaigns[index]
     if (campaign.name !== 'Total') {
-      const campaignKey = campaignToKey(campaign.name)
+      const campaignKey = convertToRedisKey(campaign.name)
       const latestVal = await latestMetric({ campaign: campaignKey }, 'amount_raised')
-      console.log(latestVal, campaignKey)
       totalFundraising += latestVal
     }
   }
-  console.log(totalFundraising)  
-//  await logMetric({ campaign: campaignToKey('Total') }, 'amount_raised', moment().unix(), totalFundraising)
+  await logMetric({ campaign: convertToRedisKey('Total') }, 'amount_raised', moment().unix(), totalFundraising)
 }
 
 async function calculateTotalPressHits() {
@@ -404,12 +404,12 @@ async function calculateTotalPressHits() {
   for (let index = 0; index < campaigns.length; index++) {
     const campaign = campaigns[index]
     if (campaign.name !== 'Total') {
-      const campaignKey = campaignToKey(campaign.name)
+      const campaignKey = convertToRedisKey(campaign.name)
       const latestVal = await latestMetric({ campaign: campaignKey }, 'press_hits')
       totalHits += latestVal
     }
   }
-  await logMetric({ campaign: campaignToKey('Total') }, 'press_hits', moment().unix(), totalHits)
+  await logMetric({ campaign: convertToRedisKey('Total') }, 'press_hits', moment().unix(), totalHits)
 }
 
 async function syncSupportersToRedis() {
@@ -421,7 +421,7 @@ async function syncSupportersToRedis() {
   )
   for (let index = 0; index < campaigns.length; index++) {
     const campaign = campaigns[index]
-    const campaignName = campaignToKey(campaign.name)
+    const campaignName = convertToRedisKey(campaign.name)
     if (campaign.supporters) {
       const consGroup = await bsd.getConstituentGroup(campaign.supporters)
       await logMetric({ campaign: campaignName }, 'supporters', timestamp, parseInt(consGroup.members, 10) || 0)
@@ -460,7 +460,7 @@ async function syncRobbDonationsToRedis() {
   }
 }
 
-function campaignToKey(campaignName) {
+function convertToRedisKey(campaignName) {
   return campaignName.replace(/\s/g, '-').replace(/:/g, '').toLowerCase()
 }
 
@@ -490,7 +490,7 @@ async function syncHistoricalDataToRedis() {
       let newDate = moment(csv[inner]['Date'])
       if (currentDate !== null && newDate.date() !== currentDate.date()) {
         const timestamp = currentDate.unix()
-        await logMetric({ campaign: campaignToKey(file) }, 'amount_raised', timestamp, Math.round(parseFloat(totalAmountRaised) * 100))
+        await logMetric({ campaign: convertToRedisKey(file) }, 'amount_raised', timestamp, Math.round(parseFloat(totalAmountRaised) * 100))
         currentDate = newDate        
       }
       currentDate = newDate
@@ -498,10 +498,6 @@ async function syncHistoricalDataToRedis() {
       totalContributions += 1
     }
   }
-}
-
-async function syncPACDonationsToRedis() {
-  
 }
 
 async function calculateTotalExpenses() {
@@ -512,21 +508,15 @@ async function syncExpensesToRedis() {
 
 }
 
-async function syncTeamMetricsToRedis() {
-
-}
-
 async function sync() {
   log.info('Generating metrics...')
   await syncRobbDonationsToRedis()
   await syncActBlueToRedis()
-  await syncPACDonationsToRedis()
-  await syncExpensesToRedis()
   await syncSupportersToRedis()
   await syncPressHitsToRedis()
   await calculateTotalDonations()
   await calculateTotalPressHits()
-//  await syncRedisToGeckoboard()
+  await syncRedisToGeckoboard()
   log.info('Done syncing.')
 }
 
