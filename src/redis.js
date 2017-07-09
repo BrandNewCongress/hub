@@ -16,7 +16,7 @@ function metricStringFromHash(metadata, metric) {
   metadataKeys.forEach((datum) => {
     key = `${key}:${datum}:${metadata[datum]}`
   })
-  key = `${key}:metric`
+  key = `${key}:${metric}`
   return key
 }
 
@@ -32,11 +32,22 @@ async function logMetric(metadata, metric, timestamp, value) {
     timestamp: timestamp,
     value: value
   }
-  await redisClient.zaddAsync(metric, timestamp, JSON.stringify(obj))
+  await redisClient.zaddAsync(key, timestamp, JSON.stringify(obj))
+}
+
+async function latestMetric(metadata, metric) {
+  const key = metricStringFromHash(metadata, metric)
+  console.log(key)
+  const lastVal = await redisClient.zrevrangeAsync(key, 0, 0)
+  if (lastVal && lastVal.length > 0) {
+    return JSON.parse(lastVal[0]).value
+  }
+  return 0
 }
 
 module.exports = {
   client: redisClient,
   logMetric: logMetric,
+  latestMetric: latestMetric,
   flushMetric: flushMetric
 }
