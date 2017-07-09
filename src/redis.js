@@ -10,8 +10,24 @@ redisClient.on("error", function (err) {
   log.error("Error " + err)
 })
 
-async function logTSPoint(metric, timestamp, value) {
-  log.info(metric, timestamp, value)
+function metricStringFromHash(metadata, metric) {
+  let key = 'metric'
+  const metadataKeys = Object.keys(metadata).sort()
+  metadataKeys.forEach((datum) => {
+    key = `${key}:${datum}:${metadata[datum]}`
+  })
+  key = `${key}:metric`
+  return key
+}
+
+async function flushMetric(metadata, metric) {
+  const key = metricStringFromHash(metadata, metric)
+  await redisClient.zremrangebyrankAsync(key, 0, -1)
+}
+
+async function logMetric(metadata, metric, timestamp, value) {
+  const key = metricStringFromHash(metadata, metric)
+
   const obj = {
     timestamp: timestamp,
     value: value
@@ -21,5 +37,6 @@ async function logTSPoint(metric, timestamp, value) {
 
 module.exports = {
   client: redisClient,
-  logTSPoint: logTSPoint
+  logMetric: logMetric,
+  flushMetric: flushMetric
 }

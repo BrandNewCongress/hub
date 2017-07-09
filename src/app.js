@@ -470,6 +470,15 @@ ${otherDetails.join('\n')}
   response.sendStatus(200)
 })
 
+app.post('/metrics', async (req, res) => {
+  const metadata = req.body.metadata
+  const metric = req.body.metric
+  const value = req.body.value
+  const timestamp = moment().unix()
+  await redis.logMetric(metadata, metric, timestamp, value)
+  res.send(200)
+})
+
 app.get('/donate', (req, res) => {
   res.redirect(
     'https://secure.actblue.com/contribute/page/bnc-candidates?refcode=brandnewcongress.org'
