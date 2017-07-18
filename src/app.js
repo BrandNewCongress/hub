@@ -13,6 +13,7 @@ const BSD = require('./bsd')
 const apiLog = require('./api-log')
 const asana = require('./asana')
 const sourceMap = require('./source-map')
+const nationSync = require('./nation-sync')
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -474,6 +475,11 @@ app.get('/donate', (req, res) => {
   res.redirect(
     'https://secure.actblue.com/contribute/page/bnc-candidates?refcode=brandnewcongress.org'
   )
+})
+
+app.get('/force-sync', (req, res) => {
+  res.send('Starting a forced sync now!')
+  nationSync().catch(ex => console.log(ex))
 })
 
 app.listen(port, () => {

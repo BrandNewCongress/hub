@@ -14,6 +14,12 @@ const bsd = new bsdConstructor(
   process.env.BSD_API_SECRET
 )
 
+/*
+ * This is a big file! It has two action points –
+ * `npm run nation-sync` runs the `sync` function via line 538
+ * the file also exports sync at the very bottom
+ */
+
 const multiClients = new Array(5)
   .fill(null)
   .map(
@@ -278,11 +284,13 @@ async function syncEvents() {
       phone: contactInfo.phone,
       email: contactInfo.email
     }
+
     let nbPerson = await nationbuilder.makeRequest('POST', 'people', {
       body: {
         person: personInfo
       }
     })
+
     nbPerson = nbPerson.data.person
     const bsdCons = await nbPersonToBSDCons(nbPerson, { forceSync: true })
     consId = bsdCons.id
@@ -394,9 +402,10 @@ async function syncEvents() {
           await bsd.addRSVPToEvent({
             event_id_obfuscated: bsdEventID,
             email: person.email,
-            zip: person.primary_address && person.primary_address.zip
-              ? person.primary_address.zip
-              : event.venue.address.zip
+            zip:
+              person.primary_address && person.primary_address.zip
+                ? person.primary_address.zip
+                : event.venue.address.zip
           })
         } catch (ex) {
           if (
@@ -528,7 +537,9 @@ const timezoneMap = {
   'Mountain Time (US & Canada)': 'US/Mountain'
 }
 
-sync().catch(ex => console.log(ex))
+if (require.main === module) {
+  sync().catch(ex => console.log(ex))
+}
 // deleteEmptyConsGroups().catch(ex => console.log(ex))
 
 /*
@@ -596,3 +607,5 @@ function promiseBatch(batch, n) {
     })
   )
 }
+
+module.exports = sync
