@@ -1,6 +1,7 @@
 const { candidateMap, calendarMap, originMap } = require('./data')
 
 const timeZoneMap = {
+  'Alaska': '-09:00',
   'Pacific Time (US & Canada)': '-07:00',
   'Mountain Time (US & Canada)': '-06:00',
   'Central Time (US & Canada)': '-05:00',
