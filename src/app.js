@@ -14,6 +14,7 @@ const apiLog = require('./api-log')
 const asana = require('./asana')
 const sourceMap = require('./source-map')
 const nationSync = require('./nation-sync')
+const qs = require('querystring')
 
 function auth(username, password) {
   return (req, res, next) => {
@@ -225,6 +226,22 @@ app.post('/people', apiLog, async (req, res) => {
     const signupSource = rawSources[0]
     const tags = rawSources.map(s => `Action: Joined Website: ${s}`)
 
+    let ref
+    if (req.headers.origin == 'https://brandnewcongress.org') {
+      const queryString = req.headers.referer.split('?')[1]
+
+      if (queryString) {
+        const parsed = qs.parse(queryString)
+        if (parsed.ref) {
+          ref = parsed.ref
+        }
+      }
+    }
+
+    if (ref) {
+      tags.push(`Action: Joined Website: Brand New Congress: ${ref}`)
+    }
+
     const createJob = queue.createJob('createPerson', {
       name: stripBadPunc(body.fullName),
       email: body.email,
@@ -236,7 +253,7 @@ app.post('/people', apiLog, async (req, res) => {
       tagsToRemove: rawSources.map(s => `Action: Unsubscribed: ${s}`),
       utmSource: body.utmSource,
       utmMedium: body.utmMedium,
-      utmCampaign: body.utmCampaign
+      utmCampaign: body.utmCampaign,
     })
 
     await saveKueJob(createJob.attempts(3))
