@@ -12,7 +12,7 @@ module.exports = {
   event: e => {
     return {
       id: e.id,
-      url: `http://go.brandnewcongress.org${e.path}`,
+      url: `http://now.brandnewcongress.org/events/${e.path}`,
       title: e.headline,
       intro: e.intro,
       startTime: new Date(e.start_time).toISOString(),
