@@ -424,7 +424,7 @@ async function syncEvents() {
       }
     }
   }
-  /*
+
   const bsdEvents = await bsd.searchEvents({
     date_start: '2000-01-01 00:00:00'
   })
@@ -443,9 +443,8 @@ async function syncEvents() {
     }
   }
   log.info(`Deleting ${eventsToDelete.length} events...`)
-  // const responses = await bsd.deleteEvents(eventsToDelete)
+  const responses = await bsd.deleteEvents(eventsToDelete)
   console.log(responses)
-  */
 
   log.info('Done syncing events!')
 }
