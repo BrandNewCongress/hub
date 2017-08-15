@@ -633,7 +633,7 @@ module.exports = class BSD {
   }
 
   async addExtIdsToConstituentGroup(groupId, extIds) {
-    let response = await this.request('/cons_group/add_ext_ids_to_group', { 
+    let response = await this.request('/cons_group/add_ext_ids_to_group', {
       cons_group_id: groupId,
       ext_type: 'nationbuilder_id',
       ext_ids: extIds.join(',')

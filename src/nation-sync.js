@@ -40,6 +40,7 @@ const tagPrefixWhitelist = ['Action:', 'Availability:', 'Skill:']
 
 async function refreshConsGroups() {
   log.info('Refreshing cons groups...')
+
   CONS_GROUP_MAP = {}
   const groups = await bsd.listConstituentGroups()
   groups.forEach(group => {
@@ -49,6 +50,7 @@ async function refreshConsGroups() {
     }
     CONS_GROUP_MAP[groupName] = group['$'].id
   })
+
   log.info('Done refreshing cons!')
 }
 
@@ -300,14 +302,17 @@ async function syncEvents() {
       )
       break
     }
+
     const startTime = event.start_time
     const timezone = timezoneMap[event.time_zone]
     const startDatetimeSystem = moment
       .tz(startTime, timezone)
       .format('YYYY-MM-DD HH:mm:ss')
+
     const duration = moment
       .duration(moment(event.end_time).diff(moment(event.start_time)))
       .asMinutes()
+
     const bsdEvent = {
       name: event.name,
       event_type_id: 1,
@@ -318,10 +323,12 @@ async function syncEvents() {
       start_datetime_system: startDatetimeSystem,
       duration: duration.toString()
     }
+
     if (event.contact) {
       bsdEvent.contact_phone = event.contact.phone
       bsdEvent.public_phone = 1
     }
+
     if (event.venue) {
       bsdEvent.venue_name = event.venue.name
       const address = event.venue.address
@@ -376,6 +383,7 @@ async function syncEvents() {
       `sites/brandnewcongress/pages/events/${event.id}/rsvps`,
       { params: { limit: 100 } }
     )
+
     let eventRSVPs = []
     while (true) {
       eventRSVPs = eventRSVPs.concat(results.data.results)
@@ -388,6 +396,7 @@ async function syncEvents() {
         break
       }
     }
+
     log.info(`Syncing ${eventRSVPs.length} RSVPs...`)
     for (let rsvpIndex = 0; rsvpIndex < eventRSVPs.length; rsvpIndex++) {
       const rsvp = eventRSVPs[rsvpIndex]
@@ -396,6 +405,7 @@ async function syncEvents() {
         `people/${rsvp.person_id}`,
         {}
       )
+
       person = person.data.person
       if (person.email) {
         try {
@@ -537,8 +547,9 @@ const timezoneMap = {
 }
 
 if (require.main === module) {
-  sync().catch(ex => console.log(ex))
+  sync().catch(ex => log.error(ex))
 }
+
 // deleteEmptyConsGroups().catch(ex => console.log(ex))
 
 /*
