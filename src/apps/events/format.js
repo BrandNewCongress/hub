@@ -44,7 +44,8 @@ module.exports = {
         venue: e.venue,
         candidate: calendarMap[e.calendar_id],
         calendar: e.calendar_id,
-        type
+        type,
+        contact: e.contact
       }
     }
   }
