@@ -313,9 +313,23 @@ async function syncEvents() {
       .duration(moment(event.end_time).diff(moment(event.start_time)))
       .asMinutes()
 
+    let event_type_id = 10 // Unknown
+    const typeTag = event.tags.filter(tag => tag.startsWith('Event Type:'))[0]
+    if (typeTag) {
+      const type = typeTag.split(':')[1].trim()
+      event_type_id = {
+        Canvass: 6,
+        'Organizing meeting': 4,
+        Other: 7,
+        Phonebank: 5,
+        'Rally, march or protest': 8,
+        'Tabling or Clipboarding': 9
+      }[type]
+    }
+
     const bsdEvent = {
       name: event.name,
-      event_type_id: 1,
+      event_type_id: event_type_id,
       description: event.intro || event.name,
       creator_cons_id: consId,
       local_timezone: timezone,
@@ -443,7 +457,7 @@ async function syncEvents() {
   for (let index = 0; index < bsdEvents.length; index++) {
     let foundEvent = false
     const bsdEvent = bsdEvents[index]
-    allNBEvents.forEach((nbEvent) => {
+    allNBEvents.forEach(nbEvent => {
       if (nbEvent.external_id === bsdEvent['event_id_obfuscated']) {
         foundEvent = true
       }
