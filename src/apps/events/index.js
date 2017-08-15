@@ -64,6 +64,48 @@ events.get('/events', async (req, res) => {
   }
 })
 
+events.get('/events-sam', async (req, res) => {
+  try {
+    const candidate = sourceMap.match(req.query.candidate)
+    const calendarId = candidate == 'Brand New Congress'
+      ? null
+      : calendarMap.fromCandidate[candidate]
+
+    const date = new Date()
+    const today = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
+
+    const query = {
+      starting: today,
+      limit: 100
+    }
+
+    if (calendarId) {
+      Object.assign(query, { calendar_id: calendarId })
+    } else {
+      if (req.query.candidate) {
+        return res
+          .status(400)
+          .json({ error: `Invalid candidate ${req.query.candidate}` })
+      }
+    }
+
+    const results = await client.get('sites/brandnewcongress/pages/events', {
+      query
+    })
+
+    return res.json(
+      results.results
+        .filter(e => e.venue.address && e.status != 'unlisted')
+        .map(format.sam.event)
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    )
+  } catch (err) {
+    log.error(err)
+    return res
+      .status(400)
+      .json(err.response && err.response.body ? err.response.body : err)
+  }
+})
 /*
  * GET /events/candidates
  *
