@@ -391,62 +391,62 @@ async function syncEvents() {
       )
     }
 
-    // SYNC RSVPS TODO
-    let results = await nationbuilder.makeRequest(
-      'GET',
-      `sites/brandnewcongress/pages/events/${event.id}/rsvps`,
-      { params: { limit: 100 } }
-    )
-
-    let eventRSVPs = []
-    while (true) {
-      eventRSVPs = eventRSVPs.concat(results.data.results)
-      if (results.data.next) {
-        const next = results.data.next.split('?')
-        results = await nationbuilder.makeRequest('GET', results.data.next, {
-          params: { limit: 100 }
-        })
-      } else {
-        break
-      }
-    }
-
-    log.info(`Syncing ${eventRSVPs.length} RSVPs...`)
-    for (let rsvpIndex = 0; rsvpIndex < eventRSVPs.length; rsvpIndex++) {
-      const rsvp = eventRSVPs[rsvpIndex]
-      let person = await nationbuilder.makeRequest(
-        'GET',
-        `people/${rsvp.person_id}`,
-        {}
-      )
-
-      person = person.data.person
-      if (person.email) {
-        try {
-          await bsd.addRSVPToEvent({
-            event_id_obfuscated: bsdEventID,
-            email: person.email,
-            zip:
-              person.primary_address && person.primary_address.zip
-                ? person.primary_address.zip
-                : event.venue.address.zip
-          })
-        } catch (ex) {
-          if (
-            ex.message &&
-            JSON.parse(ex.message).error === 'event_rsvp_error'
-          ) {
-            await bsd.addRSVPToEvent({
-              event_id_obfuscated: bsdEventID,
-              email: person.email,
-              zip: event.venue.address.zip
-            })
-          } else {
-            throw ex
-          }
-        }
-      }
-    }
+    // // SYNC RSVPS TODO
+    // let results = await nationbuilder.makeRequest(
+    //   'GET',
+    //   `sites/brandnewcongress/pages/events/${event.id}/rsvps`,
+    //   { params: { limit: 100 } }
+    // )
+    //
+    // let eventRSVPs = []
+    // while (true) {
+    //   eventRSVPs = eventRSVPs.concat(results.data.results)
+    //   if (results.data.next) {
+    //     const next = results.data.next.split('?')
+    //     results = await nationbuilder.makeRequest('GET', results.data.next, {
+    //       params: { limit: 100 }
+    //     })
+    //   } else {
+    //     break
+    //   }
+    // }
+    //
+    // log.info(`Syncing ${eventRSVPs.length} RSVPs...`)
+    // for (let rsvpIndex = 0; rsvpIndex < eventRSVPs.length; rsvpIndex++) {
+    //   const rsvp = eventRSVPs[rsvpIndex]
+    //   let person = await nationbuilder.makeRequest(
+    //     'GET',
+    //     `people/${rsvp.person_id}`,
+    //     {}
+    //   )
+    //
+    //   person = person.data.person
+    //   if (person.email) {
+    //     try {
+    //       await bsd.addRSVPToEvent({
+    //         event_id_obfuscated: bsdEventID,
+    //         email: person.email,
+    //         zip:
+    //           person.primary_address && person.primary_address.zip
+    //             ? person.primary_address.zip
+    //             : event.venue.address.zip
+    //       })
+    //     } catch (ex) {
+    //       if (
+    //         ex.message &&
+    //         JSON.parse(ex.message).error === 'event_rsvp_error'
+    //       ) {
+    //         await bsd.addRSVPToEvent({
+    //           event_id_obfuscated: bsdEventID,
+    //           email: person.email,
+    //           zip: event.venue.address.zip
+    //         })
+    //       } else {
+    //         throw ex
+    //       }
+    //     }
+    //   }
+    // }
   }
 
   const bsdEvents = await bsd.searchEvents({
