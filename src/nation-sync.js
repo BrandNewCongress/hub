@@ -485,6 +485,7 @@ async function assignConsGroups() {
     })
     return foundPrefix
   }
+
   let consIDMap = {}
   let count = 0
   const csv = Baby.parseFiles(

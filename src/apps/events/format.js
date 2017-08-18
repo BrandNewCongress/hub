@@ -1,4 +1,5 @@
 const { candidateMap, calendarMap, originMap } = require('./data')
+const moment = require('moment-timezone')
 
 const timeZoneMap = {
   'Alaska': '-09:00',
@@ -10,6 +11,14 @@ const timeZoneMap = {
 
 module.exports = {
   event: e => {
+    let tz = 'America/New_York'
+    const tzTag = e.tags.filter(t => t.startsWith('Event Time Zone:'))[0]
+    if (tzTag) {
+      tz = tzTag.split(':')[1].trim()
+    }
+
+    const timeZoneOffset = '-' + moment(e.start_time).tz(tz).format().split('-')[3]
+
     return {
       id: e.id,
       url: `http://now.brandnewcongress.org/events${e.path}`,
@@ -17,8 +26,8 @@ module.exports = {
       intro: e.intro,
       startTime: new Date(e.start_time).toISOString(),
       endTime: new Date(e.end_time).toISOString(),
-      timeZone: e.time_zone,
-      timeZoneOffset: timeZoneMap[e.time_zone],
+      timeZone: tz,
+      timeZoneOffset: timeZoneOffset,
       venue: e.venue,
       candidate: calendarMap[e.calendar_id],
       calendar: e.calendar_id
@@ -26,8 +35,16 @@ module.exports = {
   },
   sam: {
     event: e => {
+      let tz = 'America/New_York'
+      const tzTag = e.tags.filter(t => t.startsWith('Event Time Zone:'))[0]
+      if (tzTag) {
+        tz = tzTag.split(':')[1].trim()
+      }
+
+      const timeZoneOffset = '-' + moment(e.start_time).tz(tz).format().split('-')[3]
+
       let type = 'Unknown'
-      const typeTag = e.tags.filter(t => t.startsWith(`Event Type:`))[0]
+      const typeTag = e.tags.filter(t => t.startsWith('Event Type:'))[0]
       if (typeTag) {
         type = typeTag.split(':')[1].trim()
       }
@@ -39,8 +56,8 @@ module.exports = {
         intro: e.intro,
         startTime: e.start_time,
         endTime: e.end_time,
-        timeZone: e.time_zone,
-        timeZoneOffset: timeZoneMap[e.time_zone],
+        timeZone: tz,
+        timeZoneOffset: timeZoneOffset,
         venue: e.venue,
         candidate: calendarMap[e.calendar_id],
         calendar: e.calendar_id,
