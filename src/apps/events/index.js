@@ -1,7 +1,6 @@
 const express = require('express')
 const cors = require('cors')
-const client = require('nation-pool/client')
-client.forceStandalone()
+const request = require('superagent')
 const { bodyRequired } = require('../../lib')
 const mail = require('../../mail')
 const log = require('../../log')
@@ -24,38 +23,16 @@ events.use(cors())
 events.get('/events', async (req, res) => {
   try {
     const candidate = sourceMap.match(req.query.candidate)
-    const calendarId = candidate == 'Brand New Congress'
-      ? null
-      : calendarMap.fromCandidate[candidate]
 
-    const date = new Date()
-    const today = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
-
-    const query = {
-      starting: today,
-      limit: 100
-    }
-
-    if (calendarId) {
-      Object.assign(query, { calendar_id: calendarId })
-    } else {
-      if (req.query.candidate) {
-        return res
-          .status(400)
-          .json({ error: `Invalid candidate ${req.query.candidate}` })
-      }
-    }
-
-    const results = await client.get('sites/brandnewcongress/pages/events', {
-      query
-    })
-
-    return res.json(
-      results.results
-        .filter(e => e.venue.address && e.status != 'unlisted')
-        .map(format.event)
-        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    const promiseEvents = new Promise((resolve, reject) =>
+      request
+        .get('https://now.justicedemocrats.com/api/events')
+        .end((err, res) => (err ? reject(err) : resolve(res.body)))
     )
+
+    const events = await promiseEvents
+
+    return res.json(events.map(format.event))
   } catch (err) {
     log.error(err)
     return res
@@ -67,38 +44,16 @@ events.get('/events', async (req, res) => {
 events.get('/events-sam', async (req, res) => {
   try {
     const candidate = sourceMap.match(req.query.candidate)
-    const calendarId = candidate == 'Brand New Congress'
-      ? null
-      : calendarMap.fromCandidate[candidate]
 
-    const date = new Date()
-    const today = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`
-
-    const query = {
-      starting: today,
-      limit: 100
-    }
-
-    if (calendarId) {
-      Object.assign(query, { calendar_id: calendarId })
-    } else {
-      if (req.query.candidate) {
-        return res
-          .status(400)
-          .json({ error: `Invalid candidate ${req.query.candidate}` })
-      }
-    }
-
-    const results = await client.get('sites/brandnewcongress/pages/events', {
-      query
-    })
-
-    return res.json(
-      results.results
-        .filter(e => e.venue.address && e.status != 'unlisted')
-        .map(format.sam.event)
-        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    const promiseEvents = new Promise((resolve, reject) =>
+      request
+        .get('https://now.justicedemocrats.com/api/events')
+        .end((err, res) => (err ? reject(err) : resolve(res.body)))
     )
+
+    const events = await promiseEvents
+
+    return res.json(events.map(format.sam.event))
   } catch (err) {
     log.error(err)
     return res
@@ -210,7 +165,11 @@ And you can invite others to join you at the event with this link:
         'sam@brandnewcongress.org',
         'New User Submitted Event!',
         'user-event',
-        Object.assign(format.event(results.event), {candidate: req.query.candidate}, results.event)
+        Object.assign(
+          format.event(results.event),
+          { candidate: req.query.candidate },
+          results.event
+        )
       )
     } catch (err) {
       log.error(err)
@@ -233,8 +192,12 @@ events.post(
   bodyRequired('email guests_count volunteer phone name'),
   async (req, res) => {
     try {
-      const event = await client.get(`sites/brandnewcongress/pages/events/${req.params.id}`)
-      const calendar  = await client.get(`sites/brandnewcongress/pages/calendars/${event.calendar_id}`)
+      const event = await client.get(
+        `sites/brandnewcongress/pages/events/${req.params.id}`
+      )
+      const calendar = await client.get(
+        `sites/brandnewcongress/pages/calendars/${event.calendar_id}`
+      )
       const candidateName = calendar.name
       const tagName = `Action: RSVP: ${candidateName}`
       const personId = await getPersonId({
@@ -252,7 +215,9 @@ events.post(
         `sites/brandnewcongress/pages/events/${req.params.id}/rsvps`,
         { body: { rsvp } }
       )
-      await client.put(`people/${personId}/taggings`, { body: { tagging: { tag: [tagName] } } })
+      await client.put(`people/${personId}/taggings`, {
+        body: { tagging: { tag: [tagName] } }
+      })
 
       return res.json(results.rsvp)
     } catch (err) {
