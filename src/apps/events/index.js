@@ -22,11 +22,15 @@ events.use(cors())
 
 events.get('/events', async (req, res) => {
   try {
-    const candidate = sourceMap.match(req.query.candidate)
+    const { candidate } = req.query
 
     const promiseEvents = new Promise((resolve, reject) =>
       request
-        .get('https://now.justicedemocrats.com/api/events')
+        .get(
+          candidate
+            ? `https://now.justicedemocrats.com/api/events/${candidate}`
+            : 'https://now.justicedemocrats.com/api/events'
+        )
         .end((err, res) => (err ? reject(err) : resolve(res.body)))
     )
 
@@ -43,11 +47,15 @@ events.get('/events', async (req, res) => {
 
 events.get('/events-sam', async (req, res) => {
   try {
-    const candidate = sourceMap.match(req.query.candidate)
+    const { candidate } = req.query
 
     const promiseEvents = new Promise((resolve, reject) =>
       request
-        .get('https://now.justicedemocrats.com/api/events')
+        .get(
+          candidate
+            ? `https://now.justicedemocrats.com/api/events/${candidate}`
+            : 'https://now.justicedemocrats.com/api/events'
+        )
         .end((err, res) => (err ? reject(err) : resolve(res.body)))
     )
 
