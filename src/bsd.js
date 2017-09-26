@@ -328,7 +328,7 @@ module.exports = class BSD {
     return this.createConstituentObject(constituent)
   }
 
-/*  async getConstituents(filter, bundles) {
+  async getConstituents(filter, bundles) {
     let filterStrings = []
     Object.keys(filter).forEach((key) => {
       let val = ''
@@ -342,7 +342,7 @@ module.exports = class BSD {
     let filterString = filterStrings.join(',')
     let response = await this.request('cons/get_constituents', {filter: filterString, bundles: this.createBundleString(bundles)}, 'GET')
     return JSON.parse(XMLParser.toJson(response)).map((element) => this.cleanConstituent(this.cleanOutput(element)))
-  }*/
+  }
 
   async getConsIdsForGroup(groupId) {
     let response = await this.request('/cons_group/get_cons_ids_for_group', { cons_group_id: groupId })
