@@ -1,6 +1,7 @@
-const log = require('./log')
+const log = require('../log')
 const request = require('superagent')
-const bsdConstructor = require('./bsd')
+const bsdConstructor = require('../bsd')
+const moment = require('moment-timezone')
 
 const bsd = new bsdConstructor(
   process.env.BSD_API_URL,
@@ -14,7 +15,7 @@ async function syncEvents() {
     date_start: '2000-01-01 00:00:00'
   })
 
-  const responses = await bsd.deleteEvents(bsdEvents)
+  const responses = await bsd.deleteEvents(bsdEvents.map(e => e.event_id))
   log.info(`Done deleting events: ${JSON.stringify(responses)}`)
 
   // -------------------- Sync all events --------------------
@@ -39,7 +40,7 @@ async function syncEvents() {
 
 async function syncEvent(event, creatorConsId) {
   const startDatetimeSystem = moment
-    .tz(evetn.start_date, event.location.timezone)
+    .tz(event.start_date, event.location.timezone)
     .format('YYYY-MM-DD HH:mm:ss')
 
   const duration = moment
@@ -51,7 +52,7 @@ async function syncEvent(event, creatorConsId) {
     event_type_id: eventTypeId(event),
     description: event.description,
     creator_cons_id: creatorConsId,
-    local_timezone: bsdifyTimeZone(event.location.timezone),
+    local_timezone: bsdifyTimeZone(event.location.time_zone),
     is_searchable: 1,
     start_datetime_system: startDatetimeSystem,
     duration: duration.toString(),
@@ -62,14 +63,14 @@ async function syncEvent(event, creatorConsId) {
     venue_zip: event.location.postal_code,
     venue_city: event.location.locality,
     venue_state_cd: event.location.region,
-    venue_country: "US"
+    venue_country: 'US'
   }
 
-  return bsd.updateEvent(bsdEvent)
+  return bsd.createEvent(bsdEvent)
 }
 
-function eventTypeId(event) {}
-   const id = {
+function eventTypeId(event) {
+  const id = {
     Canvass: 6,
     'Organizing meeting': 4,
     Other: 7,
@@ -81,7 +82,7 @@ function eventTypeId(event) {}
   return id || 10
 }
 
-function bsdifyTimeZone (tz) {
+function bsdifyTimeZone(tz) {
   const match = {
     'America/New_York': 'US/Eastern',
     'America/Chicago': 'US/Central',
@@ -96,6 +97,26 @@ function bsdifyTimeZone (tz) {
   return `US/${city}`
 }
 
-async function syncContact (contact) {
-  // something with set constituent data
+async function syncContact(contact) {
+  const consData = {
+    firstname: contact.name.split(' ')[0],
+    lastname: contact.name.split(' ')[1],
+    cons_email: {
+      email: contact.email_address,
+      is_subscribed: 1,
+      is_primary: 1
+    },
+    cons_phone: [
+      {
+        phone: contact.phone_number,
+        phone_type: 'mobile',
+        is_primary: 1
+      }
+    ]
+  }
+
+  const cons = await bsd.setConstituentData(consData)
+  return cons.id
 }
+
+syncEvents()
