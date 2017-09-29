@@ -1,6 +1,6 @@
 const request = require('superagent')
 
-const endpoint_url = false
+const endpoint_url = true
   ? 'https://now.justicedemocrats.com/api/signup'
   : 'http://localhost:4000/api/signup'
 
