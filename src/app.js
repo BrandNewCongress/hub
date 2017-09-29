@@ -148,6 +148,7 @@ app.post('/nominations', apiLog, async (req, res) => {
       sources.forEach(s => {
         tags.push(`Action: Nominated Candidate: ${s}`)
       })
+
       const createJob = queue.create('createPerson', {
         name: stripBadPunc(body.nominatorName),
         email: body.nominatorEmail,
@@ -221,7 +222,6 @@ app.post('/nominations', apiLog, async (req, res) => {
 app.post('/people', apiLog, async (req, res) => {
   try {
     const body = req.body
-
     const rawSources = source(req)
     const signupSource = rawSources[0]
     const tags = rawSources.map(s => `Action: Joined Website: ${s}`)
