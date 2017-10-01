@@ -11,7 +11,6 @@ const queue = kue.createQueue({
 
 queue.process('createPerson', async (job, done) => {
   try {
-    await nationbuilder.createPerson(job.data)
     await osdi.createPerson(job.data)
   } catch (ex) {
     log.error(ex)
