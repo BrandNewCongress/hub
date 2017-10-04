@@ -149,7 +149,7 @@ async function personToBSDCons(person, options) {
   }
 
   const primaryAddress = person.postal_addresses[0]
-  const addressLines = primaryAddress.address_lines ? []
+  const addressLines = primaryAddress.address_lines || []
   if (primaryAddress) {
     consData.cons_addr = [
       {
