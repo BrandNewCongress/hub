@@ -168,11 +168,14 @@ async function nbPersonToBSDCons(person, options) {
     ]
   }
   const phones = []
+
+  // Longer phone number should be primary
   if (person.mobile) {
     phones.push({
       phone: person.mobile,
       phone_type: 'mobile',
-      is_primary: 1
+      is_primary:
+        !person.phone || person.mobile.length > person.phone.length ? 1 : 0
     })
   }
 
@@ -180,7 +183,8 @@ async function nbPersonToBSDCons(person, options) {
     phones.push({
       phone: person.phone,
       phone_type: 'home',
-      is_primary: person.mobile ? 0 : 1
+      is_primary:
+        !person.mobile || person.phone.length > person.mobile.length ? 1 : 0
     })
   }
   if (person.external_id) {
@@ -241,236 +245,6 @@ async function syncPeople() {
     log.info('Done syncing people!')
   }
   await redisClient.setAsync('nationsync:lastsync', now)
-}
-
-async function syncEvents() {
-  await refreshConsGroups()
-  log.info('Syncing events to BSD...')
-  let results = await nationbuilder.makeRequest(
-    'GET',
-    'sites/brandnewcongress/pages/events',
-    {
-      params: {
-        starting: moment().subtract(1, 'days').format('YYYY-MM-DD'),
-        limit: 100
-      }
-    }
-  )
-
-  // Grab all NB events
-  const allNBEvents = []
-  while (true) {
-    const events = results.data.results
-    events.forEach(event => {
-      if (event.status === 'published') {
-        allNBEvents.push(event)
-      }
-    })
-
-    if (results.data.next) {
-      const next = results.data.next.split('?')
-      results = await nationbuilder.makeRequest('GET', results.data.next, {
-        params: { limit: 100 }
-      })
-    } else {
-      break
-    }
-  }
-
-  for (let index = 0; index < allNBEvents.length; index++) {
-    const event = allNBEvents[index]
-    log.info('Syncing event', event.id, event.name)
-    const contactInfo = event.contact
-    const personInfo = {
-      full_name: contactInfo.name,
-      phone: contactInfo.phone,
-      email: contactInfo.email
-    }
-
-    let nbPerson = await nationbuilder.makeRequest('POST', 'people', {
-      body: {
-        person: personInfo
-      }
-    })
-
-    nbPerson = nbPerson.data.person
-    const bsdCons = await nbPersonToBSDCons(nbPerson, { forceSync: true })
-    consId = bsdCons.id
-    if (!consId) {
-      log.error(
-        `Somehow there is no BSD person associated with NB person: ${event.author_id}`
-      )
-      break
-    }
-
-    const startTime = event.start_time
-    const timezone = timezoneMap[event.time_zone]
-    const startDatetimeSystem = moment
-      .tz(startTime, timezone)
-      .format('YYYY-MM-DD HH:mm:ss')
-
-    const duration = moment
-      .duration(moment(event.end_time).diff(moment(event.start_time)))
-      .asMinutes()
-
-    let event_type_id = 10 // Unknown
-    const typeTag = event.tags.filter(tag => tag.startsWith('Event Type:'))[0]
-    if (typeTag) {
-      const type = typeTag.split(':')[1].trim()
-      event_type_id = {
-        Canvass: 6,
-        'Organizing meeting': 4,
-        Other: 7,
-        Phonebank: 5,
-        'Rally, march or protest': 8,
-        'Tabling or Clipboarding': 9
-      }[type]
-    }
-
-    const bsdEvent = {
-      name: event.name,
-      event_type_id: event_type_id,
-      description: event.intro || event.name,
-      creator_cons_id: consId,
-      local_timezone: timezone,
-      is_searchable: 1,
-      start_datetime_system: startDatetimeSystem,
-      duration: duration.toString()
-    }
-
-    if (event.contact) {
-      bsdEvent.contact_phone = event.contact.phone
-      bsdEvent.public_phone = 1
-    }
-
-    if (event.venue) {
-      bsdEvent.venue_name = event.venue.name
-      const address = event.venue.address
-      if (!address || !address.zip || !address.city || !address.state) {
-        log.info(`Not syncing event: ${event.name}. Missing address info.`)
-        continue
-      }
-      bsdEvent.venue_addr1 = address.address1
-      bsdEvent.venue_addr2 = `${address.address2}%${event.slug}`
-      bsdEvent.venue_zip = address.zip
-      bsdEvent.venue_city = address.city
-      bsdEvent.venue_state_cd = address.state
-      bsdEvent.venue_country = address.country_code
-    }
-
-    let bsdEventID = null
-    if (event.external_id) {
-      bsdEvent.event_id_obfuscated = event.external_id
-      bsdEventID = bsdEvent.event_id_obfuscated
-      try {
-        await bsd.updateEvent(bsdEvent)
-      } catch (ex) {
-        if (ex.name && ex.name === 'BSDExistsError') {
-          event.external_id = null
-          delete bsdEvent.event_id_obfuscated
-        } else {
-          throw ex
-        }
-      }
-    }
-
-    // CREATION
-    if (!event.external_id) {
-      const createdEvent = await bsd.createEvent(bsdEvent)
-      const updateEvent = Object.assign({}, event)
-      updateEvent.external_id = createdEvent.event_id_obfuscated
-      bsdEventID = createdEvent.event_id_obfuscated
-      await nationbuilder.makeRequest(
-        'PUT',
-        `sites/brandnewcongress/pages/events/${event.id}`,
-        {
-          body: {
-            event: updateEvent
-          }
-        }
-      )
-    }
-
-    // // SYNC RSVPS TODO
-    // let results = await nationbuilder.makeRequest(
-    //   'GET',
-    //   `sites/brandnewcongress/pages/events/${event.id}/rsvps`,
-    //   { params: { limit: 100 } }
-    // )
-    //
-    // let eventRSVPs = []
-    // while (true) {
-    //   eventRSVPs = eventRSVPs.concat(results.data.results)
-    //   if (results.data.next) {
-    //     const next = results.data.next.split('?')
-    //     results = await nationbuilder.makeRequest('GET', results.data.next, {
-    //       params: { limit: 100 }
-    //     })
-    //   } else {
-    //     break
-    //   }
-    // }
-    //
-    // log.info(`Syncing ${eventRSVPs.length} RSVPs...`)
-    // for (let rsvpIndex = 0; rsvpIndex < eventRSVPs.length; rsvpIndex++) {
-    //   const rsvp = eventRSVPs[rsvpIndex]
-    //   let person = await nationbuilder.makeRequest(
-    //     'GET',
-    //     `people/${rsvp.person_id}`,
-    //     {}
-    //   )
-    //
-    //   person = person.data.person
-    //   if (person.email) {
-    //     try {
-    //       await bsd.addRSVPToEvent({
-    //         event_id_obfuscated: bsdEventID,
-    //         email: person.email,
-    //         zip:
-    //           person.primary_address && person.primary_address.zip
-    //             ? person.primary_address.zip
-    //             : event.venue.address.zip
-    //       })
-    //     } catch (ex) {
-    //       if (
-    //         ex.message &&
-    //         JSON.parse(ex.message).error === 'event_rsvp_error'
-    //       ) {
-    //         await bsd.addRSVPToEvent({
-    //           event_id_obfuscated: bsdEventID,
-    //           email: person.email,
-    //           zip: event.venue.address.zip
-    //         })
-    //       } else {
-    //         throw ex
-    //       }
-    //     }
-    //   }
-    // }
-  }
-
-  const bsdEvents = await bsd.searchEvents({
-    date_start: '2000-01-01 00:00:00'
-  })
-
-  const eventsToDelete = []
-  for (let index = 0; index < bsdEvents.length; index++) {
-    let foundEvent = false
-    const bsdEvent = bsdEvents[index]
-    allNBEvents.forEach(nbEvent => {
-      if (nbEvent.external_id === bsdEvent['event_id_obfuscated']) {
-        foundEvent = true
-      }
-    })
-    if (foundEvent === false) {
-      eventsToDelete.push(bsdEvent.event_id)
-    }
-  }
-  log.info(`Deleting ${eventsToDelete.length} events...`)
-  const responses = await bsd.deleteEvents(eventsToDelete)
-  console.log(responses)
-
-  log.info('Done syncing events!')
 }
 
 async function assignConsGroups() {
