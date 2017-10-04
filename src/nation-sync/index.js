@@ -1,24 +1,19 @@
-const bsdConstructor = require('./bsd')
-const nationbuilder = require('./nationbuilder')
+const bsdConstructor = require('../bsd')
 const moment = require('moment')
-const log = require('./log')
-const Baby = require('babyparse')
+const log = require('../log')
+const osdi = require('./osdi-people')
+
 const redis = require('redis')
 const bluebird = require('bluebird')
 bluebird.promisifyAll(redis.RedisClient.prototype)
 bluebird.promisifyAll(redis.Multi.prototype)
 const redisClient = redis.createClient(process.env.REDIS_URL)
+
 const bsd = new bsdConstructor(
   process.env.BSD_API_URL,
   process.env.BSD_API_ID,
   process.env.BSD_API_SECRET
 )
-
-/*
- * This is a big file! It has two action points –
- * `npm run nation-sync` runs the `sync` function via line 538
- * the file also exports sync at the very bottom
- */
 
 const multiClients = new Array(5)
   .fill(null)
@@ -35,8 +30,33 @@ redisClient.on('error', function(err) {
   log.error('Error ' + err)
 })
 
+/*
+ * This is a big file! It has two action points –
+ * `npm run nation-sync` runs the `sync` function via line 538
+ * the file also exports sync at the very bottom
+ *
+ * -------------------- TOC --------------------
+ * globals
+ * sync
+ * refreshConsGroups
+ * syncPeople
+ * personToBSDCons
+ */
+
 let CONS_GROUP_MAP = {}
-const tagPrefixWhitelist = ['Action:', 'Availability:', 'Skill:']
+const tagPrefixWhitelist = ['Action', 'Availability', 'Skill']
+
+async function sync() {
+  log.info('Starting sync...')
+  await refreshConsGroups()
+  await syncPeople()
+  await syncEvents()
+  log.info('Done syncing!')
+}
+
+if (require.main === module) {
+  sync().catch(ex => log.error(ex))
+}
 
 async function refreshConsGroups() {
   log.info('Refreshing cons groups...')
@@ -54,332 +74,114 @@ async function refreshConsGroups() {
   log.info('Done refreshing cons!')
 }
 
-async function deleteEmptyConsGroups() {
-  await refreshConsGroups()
+async function syncPeople() {
+  const now = moment()
+    .subtract(1, 'day')
+    .format('YYYY-MM-DDTHH:mm:ssZ')
 
-  let tags = []
-  let results = await nationbuilder.makeRequest('GET', 'tags', {
-    params: {
-      limit: 100
-    }
-  })
-
-  while (true) {
-    tags = tags.concat(results.data.results)
-    if (results.data.next) {
-      let next = results.data.next.split('?')
-      results = await nationbuilder.makeRequest('GET', results.data.next, {
-        params: { limit: 100 }
-      })
-    } else {
-      break
-    }
+  let syncSince = await redisClient.getAsync('nationsync:lastsync')
+  log.info('Syncing people to BSD updated since', syncSince)
+  if (!syncSince) {
+    syncSince = now
   }
 
-  tags = tags.map(t => t.name)
+  let page = 0
+  let people = await osdi.people(syncSince, page)
 
-  const consGroupsToDelete = Object.keys(CONS_GROUP_MAP)
-    .filter(
-      group =>
-        tagPrefixWhitelist.filter(prefix => group.startsWith(prefix)).length > 0
-    )
-    .filter(group => !tags.includes(group))
-    .map(group => CONS_GROUP_MAP[group])
+  while (people.length > 0) {
+    log.info(`Syncing page ${page}`)
 
-  let result
-  if (consGroupsToDelete.length > 0) {
-    result = await bsd.deleteConstituentGroups(consGroupsToDelete)
-  } else {
-    result = 'No cons groups to delete'
+    const batches = batch(people)
+    await Promise.all(batches.map((batch, idx) => promiseBatch(batch, idx)))
+
+    page = page + 1
+    people = await (osdi.people, page)
   }
 
-  console.log(result)
-  return result
+  log.info('Done syncing people!')
+  await redisClient.setAsync('nationsync:lastsync', now)
 }
 
-async function nbPersonToBSDCons(person, options) {
-  const forceSync = options.forceSync || false
-
+async function personToBSDCons(person, options) {
   // local instance of bsd constructor with potentially different key
   const b = options.bsd || bsd
+  const consGroups = person.tags
+    .filter(tag => tagPrefixWhitelist.includes(tag.name.split(':')[0]))
+    .map(tag => tag.name)
 
-  const consGroups = person.tags.filter(tag => {
-    let foundPrefix = false
-    tagPrefixWhitelist.forEach(prefix => {
-      if (tag.indexOf(prefix) === 0) {
-        foundPrefix = true
-      }
-    })
-    return foundPrefix
-  })
+  const needsCreation = consGroups.filter(
+    group => CONS_GROUP_MAP[group] === undefined
+  )
 
-  for (let index = 0; index < consGroups.length; index++) {
-    const group = consGroups[index]
-    if (!CONS_GROUP_MAP.hasOwnProperty(group)) {
-      await b.createConstituentGroups([group])
-      await refreshConsGroups()
-      log.error(
-        `WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed. @cmarchibald`
-      )
-    }
+  needsCreation.map(group =>
+    log.error(
+      `WARNING: New cons group created: ${group}. Be sure to add this to the appropriate BSD dynamic cons group or people with this tag won't get e-mailed. @cmarchibald`
+    )
+  )
+
+  if (needsCreation.length > 0) {
+    await b.createConstituentGroups(needsCreation)
+    await refreshConsGroups()
   }
 
-  if (consGroups.length === 0 && !forceSync) {
+  if (consGroups.length === 0) {
     log.error(
       `WARNING: NB Person: ${person.id} did not sync. Either has no e-mail address or no suitable tags.`
     )
     return null
   }
 
-  const consGroupIds = consGroups.map(group => ({ id: CONS_GROUP_MAP[group] }))
-  const names = person.first_name.split(' ')
-  const address = person.primary_address
-  const email = person.email
   const consData = {
-    firstname: names[0] || null,
-    middlename: names[1] || null,
-    lastname: person.last_name || null,
-    create_dt: person.created_at,
-    gender: person.sex || null,
+    firstname: person.given_name || null,
+    lastname: person.family_name || null,
     ext_id: person.id,
-    ext_type: 'nationbuilder_id',
-    employer: person.employer || null,
-    occupation: person.occupation || null
+    ext_type: 'custom'
   }
 
-  if (email) {
+  const primaryEmail = person.email_addresses.filter(em => em.primary)[0]
+  if (primaryEmail) {
     consData.cons_email = {
-      email: person.email,
-      is_subscribed: person.email_opt_in ? 1 : 0,
+      email: primaryEmail.address,
+      is_subscribed: primaryEmail.status,
       is_primary: 1
     }
   }
 
-  if (address) {
+  const primaryAddress = person.postal_addresses[0]
+  if (primaryAddress) {
     consData.cons_addr = [
       {
-        addr1: address.address1 || null,
-        addr2: address.address2 || null,
-        city: address.city || null,
-        state_cd: address.state || null,
-        zip: address.zip || null,
-        country: address.country_code || null
+        addr1: primaryAddress.address_lines[0] || null,
+        addr2: primaryAddress.address_lines[1] || null,
+        city: primaryAddress.locality || null,
+        state_cd: primaryAddress.region || null,
+        zip: primaryAddress.region || null,
+        country: 'US'
       }
     ]
   }
-  const phones = []
 
-  // Longer phone number should be primary
-  if (person.mobile) {
-    phones.push({
-      phone: person.mobile,
-      phone_type: 'mobile',
-      is_primary:
-        !person.phone || person.mobile.length > person.phone.length ? 1 : 0
-    })
-  }
+  const phones = person.phone_numbers.map(p => ({
+    phone: p.number,
+    phone_type: p.number_type,
+    is_primary: p.primary
+  }))
 
-  if (person.phone) {
-    phones.push({
-      phone: person.phone,
-      phone_type: 'home',
-      is_primary:
-        !person.mobile || person.phone.length > person.mobile.length ? 1 : 0
-    })
-  }
-  if (person.external_id) {
-    consData.cons_id = person.external_id
-  }
   if (phones.length > 0) {
     consData.cons_phone = phones
   }
-  consData.cons_group = consGroupIds
+
+  consData.cons_group = consGroups.map(group => ({ id: CONS_GROUP_MAP[group] }))
+
   let cons = null
+
   try {
     cons = await b.setConstituentData(consData)
   } catch (ex) {
-    log.info(consData)
     log.error(ex)
   }
+
   return cons
-}
-
-async function syncPeople() {
-  const now = moment().subtract(1, 'seconds').format('YYYY-MM-DDTHH:mm:ssZ')
-  let syncSince = await redisClient.getAsync('nationsync:lastsync')
-  log.info('Syncing people to BSD updated since', syncSince)
-  if (!syncSince) {
-    syncSince = now
-  }
-  let results = await nationbuilder.makeRequest('GET', 'people/search', {
-    params: {
-      limit: 100,
-      updated_since: syncSince
-    }
-  })
-  const peopleRecords = []
-
-  let count = 0
-  while (true) {
-    const people = results.data.results
-    const length = people.length
-
-    // Split into groups of 5
-    const batches = batch(people)
-
-    console.time('one batch')
-    await Promise.all(batches.map((batch, idx) => promiseBatch(batch, idx)))
-    console.timeEnd('one batch')
-
-    if (results.data.next) {
-      const next = results.data.next.split('?')
-      results = await nationbuilder.makeRequest('GET', results.data.next, {
-        params: {
-          limit: 100
-        }
-      })
-      count = count + 100
-    } else {
-      break
-    }
-    log.info('Done syncing people!')
-  }
-  await redisClient.setAsync('nationsync:lastsync', now)
-}
-
-async function assignConsGroups() {
-  await refreshConsGroups()
-  const tagPrefixWhitelist = ['Action:', 'Availability:', 'Skill:']
-  function hasPrefix(tag) {
-    let foundPrefix = false
-    tagPrefixWhitelist.forEach(prefix => {
-      if (tag.indexOf(prefix) === 0) {
-        foundPrefix = true
-      }
-    })
-    return foundPrefix
-  }
-
-  let consIDMap = {}
-  let count = 0
-  const csv = Baby.parseFiles(
-    '/Users/saikat/Downloads/nationbuilder-people-export-1261-2017-06-16.csv',
-    {
-      header: true,
-      step: function(results) {
-        count = count + 1
-        console.log('Count', count)
-        const person = results.data[0]
-        const tags = person.tag_list.split(',').map(t => t.trim())
-        let foundTag = false
-        for (let tagIndex = 0; tagIndex < tags.length; tagIndex++) {
-          const tag = tags[tagIndex]
-          if (!CONS_GROUP_MAP.hasOwnProperty(tag) && hasPrefix(tag)) {
-            log.error(`Tag not found: ${tag}`)
-          } else if (hasPrefix(tag)) {
-            foundTag = true
-            const consID = CONS_GROUP_MAP[tag]
-            if (!consIDMap.hasOwnProperty(consID)) {
-              consIDMap[consID] = []
-            }
-            consIDMap[consID].push(person.nationbuilder_id)
-          }
-        }
-      }
-    }
-  )
-
-  console.log('done parsing')
-  let consGroups = Object.keys(consIDMap)
-  for (let index = 0; index < consGroups.length; index++) {
-    const groupId = consGroups[index]
-    let idsToAdd = []
-    for (
-      let innerIndex = 0;
-      innerIndex < consIDMap[groupId].length;
-      innerIndex++
-    ) {
-      if (innerIndex > 0 && innerIndex % 500 === 0) {
-        console.log('Adding ids', idsToAdd.length, groupId, idsToAdd[10])
-        await bsd.addExtIdsToConstituentGroup(groupId, idsToAdd)
-        idsToAdd = []
-      }
-      idsToAdd.push(consIDMap[groupId][innerIndex])
-    }
-    if (idsToAdd.length > 0) {
-      console.log(
-        'Adding ids at the end',
-        idsToAdd.length,
-        groupId,
-        idsToAdd[10]
-      )
-      await bsd.addExtIdsToConstituentGroup(groupId, idsToAdd)
-      idsToAdd = []
-    }
-  }
-  console.log('done')
-}
-
-async function sync() {
-  log.info('Starting sync...')
-  await refreshConsGroups()
-  await syncPeople()
-  await syncEvents()
-  log.info('Done syncing!')
-}
-
-const timezoneMap = {
-  'Eastern Time (US & Canada)': 'US/Eastern',
-  'Central Time (US & Canada)': 'US/Central',
-  'Pacific Time (US & Canada)': 'US/Pacific',
-  'Mountain Time (US & Canada)': 'US/Mountain'
-}
-
-if (require.main === module) {
-  sync().catch(ex => log.error(ex))
-}
-
-// deleteEmptyConsGroups().catch(ex => console.log(ex))
-
-/*
- * ––––––––
- * One time use
- * --------
- */
-
-async function reimportNBPeople() {
-  await refreshConsGroups()
-  const csv = Baby.parseFiles('/Users/saikat/Downloads/email-less.csv', {
-    header: true
-  })
-  let count = 0
-  const data = csv.data
-  for (let index = 0; index < data.length; index++) {
-    const person = data[index]
-    console.log(index, person.nationbuilder_id)
-    const newPerson = {}
-    Object.assign(newPerson, person)
-    newPerson.tags = person.tag_list.split(',')
-    newPerson.id = person.nationbuilder_id
-    const address = {
-      address1: person.primary_address1,
-      address2: person.primary_address2,
-      city: person.primary_city,
-      state: person.primary_state,
-      zip: person.primary_zip,
-      country: person.primary_country
-    }
-    newPerson.phone = person.phone_number
-    newPerson.mobile = person.mobile_number
-    newPerson.primary_address = address
-    console.log(person.created_at)
-    newPerson.created_at = moment(
-      person.created_at,
-      'MM/DD/YYYY hh:mm a'
-    ).format('YYYY-MM-DDTHH:mm:ssZ')
-    await nbPersonToBSDCons(newPerson)
-  }
-  console.log('done!')
 }
 
 /*
@@ -401,10 +203,8 @@ function promiseBatch(batch, n) {
   const syncer = n % 5
   return Promise.all(
     batch.map(p => {
-      log.info(`Syncing person ${p.id} ${p.email} with syncer ${syncer}`)
-      return nbPersonToBSDCons(p, { bsd: multiClients[syncer] })
+      log.info(`Syncing person ${p.id} ${p.given_name} with syncer ${syncer}`)
+      return personToBSDCons(p, { bsd: multiClients[syncer] })
     })
   )
 }
-
-module.exports = sync

@@ -12,7 +12,7 @@
     "lint": "eslint --fix --ext js --ext jsx src",
     "start": "node ./src",
     "worker": "node ./src/worker.js",
-    "nation-sync": "node ./src/nation-sync.js",
+    "nation-sync": "node ./src/nation-sync/index.js",
     "dev-start": "nodemon ./src",
     "dev-worker": "nodemon ./src/worker.js",
     "kue-dashboard": "kue-dashboard -p 3050 -r $REDIS_URL",
