@@ -22,7 +22,7 @@ const multiClients = new Array(5)
     (_, idx) =>
       new bsdConstructor(
         process.env.BSD_API_URL,
-        `syncer-${idx + 1}`,
+        `syncer-10-${idx + 1}`,
         process.env[`BSD_${idx + 1}`]
       )
   )
