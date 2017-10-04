@@ -119,4 +119,4 @@ async function syncContact(contact) {
   return cons.id
 }
 
-syncEvents()
+module.exports = { syncEvents }

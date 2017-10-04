@@ -2,6 +2,7 @@ const bsdConstructor = require('../bsd')
 const moment = require('moment')
 const log = require('../log')
 const osdi = require('./osdi-people')
+const { syncEvents } = require('./osdi-events')
 
 const redis = require('redis')
 const bluebird = require('bluebird')
@@ -95,11 +96,11 @@ async function syncPeople() {
     await Promise.all(batches.map((batch, idx) => promiseBatch(batch, idx)))
 
     page = page + 1
-    people = await (osdi.people, page)
+    people = await osdi.people(syncSince, page)
   }
 
   log.info('Done syncing people!')
-  await redisClient.setAsync('nationsync:lastsync', now)
+  // await redisClient.setAsync('nationsync:lastsync', now)
 }
 
 async function personToBSDCons(person, options) {
