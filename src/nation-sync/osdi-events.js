@@ -60,6 +60,7 @@ async function syncEvent(event, creatorConsId) {
     public_phone: 1,
     venue_name: event.location.venue,
     venue_addr1: event.location.address_lines[0],
+    venue_addr2: event.name,
     venue_zip: event.location.postal_code,
     venue_city: event.location.locality,
     venue_state_cd: event.location.region,
