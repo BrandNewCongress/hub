@@ -88,6 +88,7 @@ async function syncPeople() {
 
   let page = 0
   let people = await osdi.people(syncSince, page)
+  let progress
 
   while (people.length > 0) {
     log.info(`Syncing page ${page}`)
@@ -96,11 +97,15 @@ async function syncPeople() {
     await Promise.all(batches.map((batch, idx) => promiseBatch(batch, idx)))
 
     page = page + 1
+
+    progress = people[people.length - 1].updated_at
+    log.info(`Synced up to ${progress}`)
+    // await redisClient.setAsync('nationsync:lastsync', progress)
+
     people = await osdi.people(syncSince, page)
   }
 
   log.info('Done syncing people!')
-  // await redisClient.setAsync('nationsync:lastsync', now)
 }
 
 async function personToBSDCons(person, options) {
