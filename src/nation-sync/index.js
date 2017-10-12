@@ -100,7 +100,7 @@ async function syncPeople() {
 
     progress = people[people.length - 1].updated_at
     log.info(`Synced up to ${progress}`)
-    // await redisClient.setAsync('nationsync:lastsync', progress)
+    await redisClient.setAsync('nationsync:lastsync', progress)
 
     people = await osdi.people(syncSince, page)
   }
