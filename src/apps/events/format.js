@@ -25,9 +25,11 @@ module.exports = {
       timeZoneOffset: timeZoneOffset,
       venue: {
         name: e.location.venue,
-        address: e.location.address_lines[0],
-        city: e.location.locality,
-        state: e.location.region
+        address: {
+          address1: e.location.address_lines[0],
+          city: e.location.locality,
+          state: e.location.region
+        }
       },
       candidate: calendarMap[e.calendar_id],
       calendar: e.calendar_id
@@ -51,9 +53,11 @@ module.exports = {
         timeZoneOffset: timeZoneOffset,
         venue: {
           name: e.location.venue,
-          address: e.location.address_lines[0],
-          city: e.location.locality,
-          state: e.location.region
+          address: {
+            address1: e.location.address_lines[0],
+            city: e.location.locality,
+            state: e.location.region
+          }
         },
         candidate: calendarMap[e.calendar_id],
         calendar: e.calendar_id,
