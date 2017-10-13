@@ -148,7 +148,7 @@ async function personToBSDCons(person, options) {
   if (primaryEmail) {
     consData.cons_email = {
       email: primaryEmail.address,
-      is_subscribed: primaryEmail.status,
+      is_subscribed: primaryEmail.status == 'subscribed' ? 1 : 0,
       is_primary: 1
     }
   }
