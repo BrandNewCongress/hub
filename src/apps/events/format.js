@@ -23,7 +23,12 @@ module.exports = {
       endTime: new Date(e.end_date).toISOString(),
       timeZone: tz,
       timeZoneOffset: timeZoneOffset,
-      venue: e.venue,
+      venue: {
+        name: e.location.venue,
+        address: e.location.address_lines[0],
+        city: e.location.locality,
+        state: e.location.region
+      },
       candidate: calendarMap[e.calendar_id],
       calendar: e.calendar_id
     }
@@ -44,7 +49,12 @@ module.exports = {
         endTime: e.end_date,
         timeZone: tz,
         timeZoneOffset: timeZoneOffset,
-        venue: e.venue,
+        venue: {
+          name: e.location.venue,
+          address: e.location.address_lines[0],
+          city: e.location.locality,
+          state: e.location.region
+        },
         candidate: calendarMap[e.calendar_id],
         calendar: e.calendar_id,
         type,
