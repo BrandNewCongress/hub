@@ -69,7 +69,7 @@ async function refreshConsGroups() {
     if (CONS_GROUP_MAP.hasOwnProperty(groupName)) {
       log.error(`Duplicate cons groups: ${groupName}`)
     }
-    CONS_GROUP_MAP[groupName] = group['$'].id
+    CONS_GROUP_MAP[groupName.toLowerCase()] = group['$'].id
   })
 
   log.info('Done refreshing cons!')
@@ -116,7 +116,7 @@ async function personToBSDCons(person, options) {
     .map(tag => tag.name)
 
   const needsCreation = consGroups.filter(
-    group => CONS_GROUP_MAP[group] === undefined
+    group => CONS_GROUP_MAP[group.toLowerCase()] === undefined
   )
 
   needsCreation.map(group =>
