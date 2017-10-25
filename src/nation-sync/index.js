@@ -178,11 +178,9 @@ async function personToBSDCons(person, options) {
     consData.cons_phone = phones
   }
 
-  consData.cons_group = consGroups.map(group => ({ id: CONS_GROUP_MAP[group] }))
+  consData.cons_group = consGroups.map(group => ({ id: CONS_GROUP_MAP[group.toLowerCase()] }))
 
   console.log(consData)
-  console.log(consGroups)
-  console.log(CONS_GROUP_MAP)
 
   let cons = null
 
