@@ -144,7 +144,7 @@ async function personToBSDCons(person, options) {
     ext_type: 'custom'
   }
 
-  const primaryEmail = person.email_addresses.filter(em => em.primary)[0]
+  const primaryEmail = person.email_addresses[0]
   if (primaryEmail) {
     consData.cons_email = {
       email: primaryEmail.address,
@@ -181,6 +181,8 @@ async function personToBSDCons(person, options) {
   consData.cons_group = consGroups.map(group => ({ id: CONS_GROUP_MAP[group] }))
 
   console.log(consData)
+  console.log(consGroups)
+  console.log(CONS_GROUP_MAP)
 
   let cons = null
 
