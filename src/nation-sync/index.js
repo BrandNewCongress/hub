@@ -206,11 +206,17 @@ function batch(arr) {
   return result
 }
 
+function getEmail(p) {
+  return p.email_addresses.length > 0
+    ? p.email_addresses[0].address
+    : null
+}
+
 function promiseBatch(batch, n) {
   const syncer = n % 5
   return Promise.all(
     batch.map(p => {
-      log.info(`Syncing person ${p.id} ${p.given_name} with syncer ${syncer}`)
+      log.info(`Syncing person ${p.id} ${getEmail(p)} with syncer ${syncer}`)
       return personToBSDCons(p, { bsd: multiClients[syncer] })
     })
   )
