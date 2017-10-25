@@ -55,9 +55,9 @@ async function sync() {
   log.info('Done syncing!')
 }
 
-// if (require.main === module) {
-//   sync().catch(ex => log.error(ex))
-// }
+if (require.main === module) {
+  sync().catch(ex => log.error(ex))
+}
 
 async function refreshConsGroups() {
   log.info('Refreshing cons groups...')
