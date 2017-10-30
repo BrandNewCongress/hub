@@ -232,6 +232,19 @@ module.exports = class BSD {
     return this.createGroupObject(group)
   }
 
+  async mergeConsByEmail(email) {
+    let response = await this.request(
+      'cons/merge_constituents_by_email',
+      {
+        email
+      },
+      'GET'
+    )
+
+    response = await parseStringPromise(response)
+    return response
+  }
+
   async processSignup(formId, formFieldValues) {
     let fields = ''
 
