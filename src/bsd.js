@@ -717,7 +717,7 @@ module.exports = class BSD {
       response = await this.makeSOAPRequest(callPath, params, method)
     else
       response = await this.makeRESTRequest(callPath, params, method)
-    if (response.statusCode === 202)
+    if (response.statusCode === 202 && callPath != 'cons/merge_constituents_by_email')
       return this.getDeferredResult(response.body)
     else
       return response.body
