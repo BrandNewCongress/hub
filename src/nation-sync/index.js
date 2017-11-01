@@ -184,7 +184,7 @@ async function personToBSDCons(person, options) {
 
   try {
     cons = await b.setConstituentData(consData)
-    _deferred = await b.mergeConsByEmail(primaryEmail)
+    // _deferred = await b.mergeConsByEmail(primaryEmail)
   } catch (ex) {
     log.error(ex)
   }
