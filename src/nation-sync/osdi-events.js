@@ -49,7 +49,7 @@ async function syncEvent(event, creatorConsId) {
 
   const bsdEvent = {
     name: event.title,
-    event_type_id: eventTypeId(event),
+    event_type_id: 5,
     description: event.description,
     creator_cons_id: creatorConsId,
     local_timezone: bsdifyTimeZone(event.location.time_zone),
