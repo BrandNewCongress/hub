@@ -51,7 +51,7 @@ async function sync() {
   log.info('Starting sync...')
   await refreshConsGroups()
   await syncPeople()
-  await syncEvents()
+  // await syncEvents()
   log.info('Done syncing!')
 }
 
